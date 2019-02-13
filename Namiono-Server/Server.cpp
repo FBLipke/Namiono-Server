@@ -40,10 +40,9 @@ void Server::Update()
 {
 	for (auto & endp  : endpoints)
 	{
-		printf("Updating Endpoint %s....\n", endp.first.c_str());
-
 		if (!endp.second->IsListening())
 		{
+			printf("Removing (unused) Endpoint %s....\n", endp.first.c_str());
 			endpoints.erase(endp.first);
 		}
 	}
@@ -53,12 +52,11 @@ void Server::Update()
 		if (client.second == nullptr)
 			endpoints.erase(client.first);
 
-		printf("Updating client %s....\n", client.first.c_str());
-
 		if (client.second->DHCP->Get_State() == DHCP_ABORT ||
 			client.second->DHCP->Get_State() == DHCP_WAITING ||
 			client.second->DHCP->Get_State() == DHCP_DONE)
 		{
+			printf("Removing DHCP Client \"%s\"...\n", client.first.c_str());
 			endpoints.erase(client.first);
 			continue;
 		}
@@ -66,6 +64,7 @@ void Server::Update()
 		if (client.second->TFTP->GetTFTPState() == TFTP_ERROR ||
 			client.second->TFTP->GetTFTPState() == TFTP_DONE)
 		{
+			printf("Removing TFTP Client \"%s\"...\n", client.first.c_str());
 			endpoints.erase(client.first);
 			continue;
 		}
@@ -205,6 +204,8 @@ int Server::Listen(const std::function<void(const ServiceType* servicetype,
 	this->isRunning = true;
 	int retval = SOCKET_ERROR;
 	
+	printf("[I] Waiting for requests...!\n\n");
+
 	while (this->endpoints.size() > 0)
 	{
 		FD_ZERO(&_fd_read);
@@ -263,7 +264,7 @@ int Server::Listen(const std::function<void(const ServiceType* servicetype,
 
 				if (errNum != 0 || retval == SOCKET_ERROR)
 				{
-					printf("Socket Error: %d\n", errNum);
+					printf("[E] Socket Error: %d\n", errNum);
 					break;
 				}
 

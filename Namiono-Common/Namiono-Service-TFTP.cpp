@@ -75,23 +75,61 @@ _SIZE_T FileLength(const std::string& file)
 	return bytes;
 }
 
+void Namiono_Service_TFTP::Handle_TFTP_ERR(Server* server, const std::string& ident, Client* client, Packet* packet)
+{
+}
+
 void Namiono_Service_TFTP::Handle_TFTP_RRQ(Server* server, const std::string& ident, Client* client, Packet* packet)
 {
 	client->TFTP.get()->SetFilename(Functions::Combine(std::string("[TFTP]"),
 		Functions::Combine(client->DHCP->GetPrefix(),std::string(packet->Get_TFTPOption("File").Value))));
 	
 	client->TFTP.get()->SetBytesToRead(FileLength(client->TFTP.get()->GetFilename()));
-	printf("%s: Requested file: %s\n", ident.c_str(), client->TFTP.get()->GetFilename().c_str());
+
 	if (!Functions::FileExist(client->TFTP.get()->GetFilename().c_str()))
 	{
 		client->TFTP->SetTFTPState(TFTP_ERROR);
+		std::unique_ptr<Packet> response(new Packet((client->TFTP.get()->GetFilename().size() + 1) + 4, Packet_OPCode::TFTP_ERR));
+		response->Write(static_cast<unsigned short>(BS16(5)));
+		response->Write(static_cast<unsigned short>(BS16(1)), 2);
+		
+		response->Write(client->TFTP.get()->GetFilename().c_str(),
+			client->TFTP.get()->GetFilename().size(), 4);
+		response->Commit();
+
+		server->Send(ident, client, response.get());
 		return;
 	}
 
 	std::unique_ptr<Packet> response(new Packet(1024, Packet_OPCode::TFTP_OACK));
 
-	response->Add_TFTPOption(TFTP_Option("tsize", Functions::AsString(client->TFTP->GetBytesToRead())));
+	if (packet->Has_TFTPOption("tsize"))
+		response->Add_TFTPOption(TFTP_Option("tsize", Functions::AsString(client->TFTP->GetBytesToRead())));
+
+	if (packet->Has_TFTPOption("blksize"))
+	{
+		char blksize[6];
+		memcpy(&blksize, packet->Get_TFTPOption("blksize").Value, sizeof blksize);
+		client->TFTP->SetBlockSize(atoi(blksize));
+	}
+
 	response->Add_TFTPOption(TFTP_Option("blksize", Functions::AsString(client->TFTP->GetBlockSize())));
+
+	if (packet->Has_TFTPOption("windowsize"))
+	{
+		char winsize[6];
+		memcpy(&winsize, packet->Get_TFTPOption("windowsize").Value, sizeof winsize);
+		client->TFTP->SetWindowSize(atoi(winsize));
+		response->Add_TFTPOption(TFTP_Option("windowsize", Functions::AsString(client->TFTP->GetWindowSize())));
+	}
+
+	if (packet->Has_TFTPOption("msftwindow"))
+	{
+		char winsize[6];
+		memcpy(&winsize, packet->Get_TFTPOption("msftwindow").Value, sizeof winsize);
+		client->TFTP->SetMSFTWindow(atoi(winsize));
+		response->Add_TFTPOption(TFTP_Option("msftwindow", Functions::AsString(client->TFTP->GetMSFTWindow())));
+	}
 
 	response->Commit();
 	server->Send(ident, client, response.get());
@@ -114,9 +152,13 @@ void Namiono_Service_TFTP::Handle_TFTP_ACK(Server* server, const std::string& id
 	if (client->TFTP.get()->GetCurrentBlock() != packet->Get_Block())
 	{
 		client->TFTP->SetTFTPState(TFTP_ERROR);
-		printf("[W] %s: Client \"%s\" is out of sync!\n Dropping!...\n", ident.c_str(), client->Get_Ident().c_str());
-		
 		return;
+	}
+
+	if (packet->get_Length() > 4)
+	{
+		// Clients can send new window size via ACK at pos 4!
+		client->TFTP->SetWindowSize(static_cast<unsigned short>(packet->Get_Buffer()[4]));
 	}
 
 	FILE* fil = fopen(client->TFTP.get()->GetFilename().c_str(), "rb");
@@ -143,7 +185,6 @@ void Namiono_Service_TFTP::Handle_TFTP_ACK(Server* server, const std::string& id
 		if (client->TFTP.get()->GetBytesRead() == client->TFTP.get()->GetBytesToRead())
 		{
 			client->TFTP->SetTFTPState(TFTP_DONE);
-			printf("[W] %s: Client \"%s\" has transfer completed...!\n", ident.c_str(), client->Get_Ident().c_str());
 			break;
 		}
 	}

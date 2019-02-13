@@ -11,27 +11,36 @@ namespace Namiono
 			while (server.IsRunning())
 			{
 				Sleep(sleep);
-				Update();
+				server.Update();
 			}
 		}
 
-		void Update() {
-			server.Update();
-		}
-
-		int _main(int argc, const char * argv)
+		bool __Initialize()
 		{
+			printf("Namiono - PXE Service Version 0.5\n");
 			server.Add_Endpoint(DHCP_SERVER, UDP);
 			server.Add_Endpoint(BOOTP_SERVER, UDP);
 			server.Add_Endpoint(TFTP_SERVER, UDP);
 
-			if (server.Initialize())
-			{
-				std::thread _workerThread = std::thread(__Update, SETTINGS.SERVER_UPDATE_DELAY);
 
-				server.Listen(Handle_Request);
-				_workerThread.detach();
+			if (!server.Initialize())
+			{
+				printf("[E] Failed to initialize the Server!\n");
+				return false;
 			}
+
+			return true;
+		}
+
+		int _main(int argc, const char * argv)
+		{
+			if (!__Initialize())
+				return -1;
+
+			std::thread _workerThread = std::thread(__Update, SETTINGS.SERVER_UPDATE_DELAY);
+			_workerThread.detach();
+
+			server.Listen(Handle_Request);
 
 			server.Shutdown();
 

@@ -96,18 +96,18 @@ EXPORT Packet::Packet(const ServiceType* serviceType, const char* data, const _S
 				for (_SIZE_T i = 2; i < *length; i++)
 					if (memcmp(option, &this->Get_Buffer()[i], strlen(option)) == 0)
 					{
+						printf("option \"%s\" in packet!\n", option);
 						position = static_cast<_SIZE_T>(i + (strlen(option) + 1));
 
 						strcpy(value, &this->Get_Buffer()[position]);
 						*sso << option;
 						*ssv << value;
 
-						if (Functions::Compare(ssv->str().c_str(), "octet",0))
+						if (Functions::Compare(ssv->str().c_str(), "octet", 5))
 							Add_TFTPOption(TFTP_Option("Mode", "octet"));
 						else
 							Add_TFTPOption(TFTP_Option(sso->str().c_str(), ssv->str().c_str()));
 					}
-
 				position = 0;
 
 				delete sso;
@@ -175,6 +175,7 @@ EXPORT Packet::Packet(const _SIZE_T length, Packet_OPCode opcode)
 	ClearBuffer(this->Get_Buffer(), length);
 	this->set_Length(length);
 	this->Set_Opcode(opcode);
+
 }
 
 EXPORT Packet::~Packet()
@@ -328,6 +329,8 @@ EXPORT void Packet::Commit()
 		}
 
 		this->Trim();
+		break;
+	case TFTP_ERR:
 		break;
 	case BINL_RSU:
 	case BINL_CHA:

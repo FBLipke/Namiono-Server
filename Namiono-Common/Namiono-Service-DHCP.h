@@ -1,5 +1,7 @@
 #pragma once
 #include <Namiono-Service.h>
+
+
 class Namiono_Service_DHCP : public Service
 {
 public:
@@ -9,6 +11,7 @@ public:
 	~Namiono_Service_DHCP();
 
 	virtual void Handle_Service_Request(Server* server, const std::string & ident, Client* client, Packet* packet) override;
+	std::string Get_Bootfile_Path(Client * client);
 private:
 	void Handle_DHCP_Discover(Server* server, const std::string& ident, Client* client, Packet* packet);
 	void Handle_DHCP_Request(Server* server, const std::string& ident, Client* client, Packet* packet);

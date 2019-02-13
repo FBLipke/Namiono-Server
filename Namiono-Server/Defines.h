@@ -6,6 +6,7 @@
 typedef unsigned long _SIZE_T;
 typedef unsigned long _IPADDR;
 typedef unsigned long _SOCKET;
+
 #define EXPORT __declspec(dllexport)
 #define IMPORT __declspec(dllimport)
 #define INLINE __inline
@@ -14,7 +15,7 @@ typedef unsigned long _SOCKET;
 typedef unsigned int _SIZE_T;
 typedef unsigned int IPAddress;
 typedef unsigned int _SOCKET;
-#define EXPORT __declspec(dllexport)
+#define EXPORT EXPORT
 #define IMPORT __declspec(dllimport)
 #define INLINE __inline
 #define ClearBuffer(x, y) memset(x, 0, y);
@@ -79,6 +80,21 @@ EXPORT typedef enum RBCP_DISCOVERYCONTROL
 
 } RBCP_DISCOVERYCONTROL;
 
+EXPORT typedef enum BootServerType
+{
+	PXEBootstrapServer = 0x0000,
+	WindowsNTBootServer = 0x0001,
+	IntelLCMBootServer = 0x0002,
+	PXEAPITestServer = 0xffff
+} BootServerType;
+
+EXPORT typedef enum BootServerReplyType
+{
+	Boot = 0x0000,
+	Auth = 0x0001
+} BootServerReplyType;
+
+
 EXPORT typedef enum CompareType
 {
 	Memory = 0,
@@ -112,19 +128,7 @@ EXPORT typedef enum Packet_OPCode
 
 } Packet_OPCode;
 
-EXPORT typedef enum BootServerType
-{
-	PXEBootstrapServer = 0x0000,
-	WindowsNTBootServer = 0x0001,
-	IntelLCMBootServer = 0x0002,
-	PXEAPITestServer = 0xffff
-} BootServerType;
 
-EXPORT typedef enum BootServerReplyType
-{
-	Boot = 0x0000,
-	Auth = 0x0001
-} BootServerReplyType;
 
 EXPORT typedef enum TFTP_OPCODE
 {
@@ -387,7 +391,7 @@ EXPORT typedef enum DHCP_ARCH
 	DEC_ALPHA = 0x03,
 	ARC_X86 = 0x04,
 	INTEL_LEAN = 0x05,
-	EFI_IA32 = 0x06,
+	INTEL_IA32X64 = 0x06,
 	EFI_BC = 0x07,
 	EFI_XSCALE = 0x08,
 	EFI_X86X64 = 0x09
@@ -415,7 +419,13 @@ EXPORT typedef enum DHCP_FLAGS
 
 EXPORT typedef enum DHCP_HARDWARETYPE
 {
-	Ethernet = 0x01
+	Ethernet = 0x01,
+	Exp_Ethernet = 0x02,
+	AX25 = 0x03,
+	PRONET = 0x04,
+	CHAOS = 0x05,
+	IEEE802 = 0x06,
+	ARCNET = 0x07
 } DHCP_HARDWARETYPE;
 
 EXPORT typedef enum CLIENTSTATE
@@ -463,9 +473,23 @@ EXPORT typedef enum RBCP_Options
 	PXE_BOOT_MENU = 9,
 	PXE_MENU_PROMPT = 10,
 	PXE_CREDENTIAL_TYPES = 12,
-
-	PXE_BOOTITEM	= 71
-
+	PXE_NIC_PATH = 64,
+	PXE_MAN_INFO = 65,
+	PXE_OS_INFO = 66,
+	PXE_BOOT_OS_INFO = 67,
+	PXE_PROMPT_INFO = 68,
+	PXE_OS_INFO2 = 69,
+	PXE_BOOT_OS_INFO2 = 70,
+	PXE_BOOT_ITEM = 71,
+	
+	PXE_LCM_SERVER = 179,
+	PXE_LCM_DOMAIN = 180,
+	PXE_LCM_NIC_OPT0 = 181,
+	PXE_LCM_WORKGROUP = 190,
+	PXE_LCM_DISCOVERY = 191,
+	PXE_LCM_CONFIGURED = 192,
+	PXE_LCM_VERSION = 193,
+	PXE_LCM_SERIALNO = 194,
 } RBCP_Options;
 
 EXPORT typedef enum WDSNBP_OPTION_NEXTACTION
@@ -804,8 +828,7 @@ EXPORT typedef struct DHCP_CLIENT
 		switch (*this->arch)
 		{
 		case INTEL_X86:
-			*this->prefix = "";
-
+			*this->prefix = "Boot\\x86\\";
 			switch (this->wds->GetNextAction())
 			{
 			case ABORT:
@@ -817,9 +840,9 @@ EXPORT typedef struct DHCP_CLIENT
 				break;
 			}
 			break;
-		case EFI_IA32:
+		case INTEL_IA32X64:
 		case EFI_X86X64:
-			*this->prefix = "";
+			*this->prefix = "Boot\\x64\\";
 			switch (this->wds->GetNextAction())
 			{
 			case ABORT:
@@ -833,12 +856,12 @@ EXPORT typedef struct DHCP_CLIENT
 			}
 			break;
 		case EFI_BC:
-			*this->prefix = "";
-			*this->bootfile = "Boot\\efi\\bootmgfw.efi";
-			this->wds->SetBCDfile("Boot\\efi\\default.bcd");
+			*this->prefix = "Boot\\efi\\";
+			*this->bootfile = "bootmgfw.efi";
+			this->wds->SetBCDfile("default.bcd");
 			break;
 		default:
-			*this->prefix = "";
+			*this->prefix = "Boot\\x86\\";
 			*this->bootfile = "Boot\\x86\\wdsnbp.com";
 			this->wds->SetBCDfile("");
 			break;

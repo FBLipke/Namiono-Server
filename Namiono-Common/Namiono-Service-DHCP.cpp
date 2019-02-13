@@ -101,6 +101,14 @@ void Namiono_Service_DHCP::Handle_DHCP_Discover(Server* server, const std::strin
 	vendorOpts.emplace_back(static_cast<unsigned char>(PXE_MTFTP_SERVER_PORT), SETTINGS.MTFTP_SPORT);
 	vendorOpts.emplace_back(static_cast<unsigned char>(PXE_MTFTP_CLIENT_PORT), SETTINGS.MTFTP_CPORT);
 
+	/* LCM related Options */
+	vendorOpts.emplace_back(static_cast<unsigned char>(PXE_LCM_DOMAIN), "FBLIPKE");
+	vendorOpts.emplace_back(static_cast<unsigned char>(PXE_LCM_SERVER), server->Get_Hostname());
+	vendorOpts.emplace_back(static_cast<unsigned char>(PXE_LCM_DISCOVERY), static_cast<unsigned char>(1));
+	vendorOpts.emplace_back(static_cast<unsigned char>(PXE_LCM_CONFIGURED), static_cast<unsigned char>(1));
+	vendorOpts.emplace_back(static_cast<unsigned char>(PXE_LCM_VERSION), BS32(static_cast<unsigned long>(1)));
+	vendorOpts.emplace_back(static_cast<unsigned char>(PXE_LCM_SERIALNO), std::string("Namiono - Server 0.5"));
+
 	if (vendorOpts.size() != 0)
 		response->Add_DHCPOption(DHCP_Option(static_cast<unsigned char>(43), vendorOpts));
 
@@ -184,12 +192,11 @@ void Namiono_Service_DHCP::Handle_WDS_Options(Server* server, const std::string&
 	if (client->DHCP->GetIsWDSRequest())
 	{
 		this->requestId++;
-		response->set_filename(client->DHCP->GetBootfile());
+		response->set_filename(Get_Bootfile_Path(client) + "pxeboot.n12");
+		response->Add_DHCPOption(DHCP_Option(252, Get_Bootfile_Path(client) + "default.bcd"));
+
 		client->DHCP->wds->SetRequestID(this->requestId);
 	}
-
-	if (client->DHCP->wds->GetBCDfile().size() != 0)
-		response->Add_DHCPOption(DHCP_Option(252, client->DHCP->wds->GetBCDfile()));
 
 	client->DHCP->Set_State(client->DHCP->wds->
 		GetActionDone() == 0 ? DHCP_WAITING : DHCP_DONE);
@@ -256,7 +263,7 @@ void Namiono_Service_DHCP::Handle_DHCP_Request(Server* server, const std::string
 
 			// Get the selected Server...
 			for (DHCP_Option & opt : options)
-				if (opt.Option == static_cast<unsigned char>(PXE_BOOTITEM))
+				if (opt.Option == static_cast<unsigned char>(PXE_BOOT_ITEM))
 				{
 					unsigned short layer = 0;
 					unsigned short type = 0;
@@ -319,8 +326,6 @@ void Namiono_Service_DHCP::Handle_DHCP_Request(Server* server, const std::string
 			break;
 		}
 
-
-
 		if (client->DHCP->rbcp->Get_Item() != 0)
 		{
 			char item[4];
@@ -330,7 +335,7 @@ void Namiono_Service_DHCP::Handle_DHCP_Request(Server* server, const std::string
 			memcpy(&item[0], &type, sizeof type);
 			memcpy(&item[2], &layer, sizeof layer);
 
-			vendorOpts.emplace_back(static_cast<unsigned char>(PXE_BOOTITEM), static_cast<unsigned char>(4), item);
+			vendorOpts.emplace_back(static_cast<unsigned char>(PXE_BOOT_ITEM), static_cast<unsigned char>(4), item);
 		}
 
 		if (vendorOpts.size() != 0)
@@ -408,4 +413,25 @@ void Namiono_Service_DHCP::Handle_Service_Request(Server* server, const std::str
 
 	if (client->DHCP->Get_State() == DHCP_DONE || client->DHCP->Get_State() == DHCP_ABORT)
 		server->Remove_Client(client->Get_Ident());
+}
+
+
+std::string Namiono_Service_DHCP::Get_Bootfile_Path(Client* client)
+{
+	switch (BS16(client->DHCP->GetArchitecture()))
+	{
+	case INTEL_X86:
+		return std::string("Boot\\x86\\");
+		break;
+	case INTEL_IA32X64:
+		return std::string("Boot\\x64\\");
+		break;
+	case EFI_X86X64:
+	case EFI_BC:
+		return std::string("Boot\\efi\\");
+		break;
+	default:
+		return std::string("Boot\\x86\\");
+		break;
+	}
 }

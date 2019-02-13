@@ -1,6 +1,6 @@
 #include <Namiono-Server.h>
 
-EXPORT std::string Functions::AddressStr(const _IPADDR ip)
+std::string Functions::AddressStr(const _IPADDR ip)
 {
 	in_addr addr;
 	ClearBuffer(&addr, sizeof(addr));
@@ -44,7 +44,7 @@ bool Functions::FileExist(const char* Filename)
 	return res;
 }
 
-EXPORT std::vector<std::string> Functions::Split(const std::string& str, const std::string& token)
+std::vector<std::string> Functions::Split(const std::string& str, const std::string& token)
 {
 	std::string tmp = str;
 	std::vector<std::string> result;
@@ -99,7 +99,7 @@ void Functions::ExtractString(const char* buf, const size_t& size, char* out)
 	strncpy(out, buf, size - 1);
 }
 
-EXPORT _SIZE_T Functions::Strip(const char* buffer, const _SIZE_T buflen)
+_SIZE_T Functions::Strip(const char* buffer, const _SIZE_T buflen)
 {
 	for (auto i = buflen; buflen > 0; i = i - 1)
 		if (static_cast<unsigned char>(buffer[i])

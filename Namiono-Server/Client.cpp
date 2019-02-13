@@ -35,4 +35,3 @@ void Client::Set_Hint(const sockaddr_in hint)
 	this->hint.sin_addr.s_addr = hint.sin_addr.s_addr != 0
 		? hint.sin_addr.s_addr : INADDR_BROADCAST;
 }
-
