@@ -1,0 +1,18 @@
+<OSCML>
+<META KEY=ENTER ACTION="REBOOT">
+<META KEY=F3 ACTION="REBOOT">
+<TITLE>  Client Installation Wizard                                    Error 00004E23 </TITLE>
+<FOOTER> Press any key to restart computer</FOOTER>
+<BODY left=5 right=75>
+<BR>
+<BR>
+<BOLD>Invalid computer name</BOLD><BR>
+<BR><BR>
+The specified computer name contains invalid characters and cannot
+be used. Only A-Z, 0-9 and dash are valid DNS characters.
+<BR>
+Choose a different name for this computer, or contact your network administrator for assistance.
+<BR><BR>
+%SUBERROR%
+</BODY>
+</OSCML>
