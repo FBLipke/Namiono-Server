@@ -16,6 +16,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Namiono-Common", "Namiono-C
 		{9C7B65F2-CA14-4646-91EC-AA3C31971C85} = {9C7B65F2-CA14-4646-91EC-AA3C31971C85}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Namiono-Envirionment", "Namiono-Envirionment\Namiono-Envirionment.vcxproj", "{EB4F0A95-C173-4E44-AB56-6070CE4FE67D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -48,6 +50,14 @@ Global
 		{858F71EE-67F2-4283-881C-E49CC4B4C67D}.Release|x64.Build.0 = Release|x64
 		{858F71EE-67F2-4283-881C-E49CC4B4C67D}.Release|x86.ActiveCfg = Release|Win32
 		{858F71EE-67F2-4283-881C-E49CC4B4C67D}.Release|x86.Build.0 = Release|Win32
+		{EB4F0A95-C173-4E44-AB56-6070CE4FE67D}.Debug|x64.ActiveCfg = Debug|x64
+		{EB4F0A95-C173-4E44-AB56-6070CE4FE67D}.Debug|x64.Build.0 = Debug|x64
+		{EB4F0A95-C173-4E44-AB56-6070CE4FE67D}.Debug|x86.ActiveCfg = Debug|Win32
+		{EB4F0A95-C173-4E44-AB56-6070CE4FE67D}.Debug|x86.Build.0 = Debug|Win32
+		{EB4F0A95-C173-4E44-AB56-6070CE4FE67D}.Release|x64.ActiveCfg = Release|x64
+		{EB4F0A95-C173-4E44-AB56-6070CE4FE67D}.Release|x64.Build.0 = Release|x64
+		{EB4F0A95-C173-4E44-AB56-6070CE4FE67D}.Release|x86.ActiveCfg = Release|Win32
+		{EB4F0A95-C173-4E44-AB56-6070CE4FE67D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

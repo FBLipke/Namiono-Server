@@ -9,7 +9,7 @@ std::string Functions::AddressStr(const _IPADDR ip)
 	return std::string(inet_ntoa(addr));
 }
 
-std::string Functions::AsString(const _SIZE_T input)
+std::string Functions::AsString(const _SIZET input)
 {
 	std::stringstream ss;
 	ss << input;
@@ -72,7 +72,7 @@ std::vector<std::string> Functions::Split(const std::string& str, const std::str
 /*
  *Compare Memory or Strings...
 */
-bool Functions::Compare(const char* p1, const char* p2, const _SIZE_T length)
+bool Functions::Compare(const char* p1, const char* p2, const _SIZET length)
 {
 	bool result = memcmp(p1, p2, length) == 0;
 
@@ -99,7 +99,7 @@ void Functions::ExtractString(const char* buf, const size_t& size, char* out)
 	strncpy(out, buf, size - 1);
 }
 
-_SIZE_T Functions::Strip(const char* buffer, const _SIZE_T buflen)
+_SIZET Functions::Strip(const char* buffer, const _SIZET buflen)
 {
 	for (auto i = buflen; buflen > 0; i = i - 1)
 		if (static_cast<unsigned char>(buffer[i])

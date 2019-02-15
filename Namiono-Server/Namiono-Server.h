@@ -5,6 +5,7 @@
 #include <functional>
 #include <thread>
 #include <sstream>
+#ifdef _WIN32
 #include <WinSock2.h>
 #include <Ws2tcpip.h>
 #include <iphlpapi.h>
@@ -13,6 +14,7 @@
 #pragma comment(lib, "IPHLPAPI.lib")
 #pragma comment(lib, "Advapi32.lib")
 #pragma comment(lib, "SQLITELib.lib")
+#endif
 #include <Defines.h>
 #include <Functions.h>
 #include <Endpoint.h>

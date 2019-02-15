@@ -9,6 +9,6 @@ namespace Namiono
 	{
 		EXPORT int _main(int argc, const char* argv);
 		EXPORT void Handle_Request(const ServiceType* servicetype, const std::string& ident,
-			const sockaddr_in* remote, const char* buffer, const _SIZE_T length);
+			const struct sockaddr_in* remote, const char* buffer, const _SIZET length);
 	}
 }

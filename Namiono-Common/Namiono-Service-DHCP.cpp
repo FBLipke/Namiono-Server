@@ -7,13 +7,13 @@ void Namiono_Service_DHCP::Update()
 
 Namiono_Service_DHCP::Namiono_Service_DHCP(Server* server)
 {
-	sqlite3_open_v2("Computers.db", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
+	//sqlite3_open_v2("Computers.db", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
 }
 
 Namiono_Service_DHCP::~Namiono_Service_DHCP()
 {
 	Serverlist.clear();
-	sqlite3_close_v2(db);
+	//sqlite3_close_v2(db);
 }
 
 void Namiono_Service_DHCP::Create_BootServer_List(Server* server, const std::string& ident, std::vector<DHCP_Option>& vendorOps)
@@ -23,8 +23,8 @@ void Namiono_Service_DHCP::Create_BootServer_List(Server* server, const std::str
 	addresses.emplace_back(server->Get_IPAddress(ident));
 	Serverlist.emplace_back(id, server->Get_Hostname(), addresses, "");
 	addresses.clear();
-
-	int ret = sqlite3_prepare_v2(db, "SELECT Description, Address, Type, File FROM Servers", -1, &stmt, NULL);
+#ifdef _WIN32
+	int ret = sqlite3_prepare(db, "SELECT Description, Address, Type, File FROM Servers", -1, &stmt, NULL);
 
 	if (ret != SQLITE_OK)
 		return;
@@ -43,7 +43,7 @@ void Namiono_Service_DHCP::Create_BootServer_List(Server* server, const std::str
 	}
 
 	sqlite3_finalize(stmt);
-
+#endif
 	if (Serverlist.size() == 0)
 		return;
 
@@ -77,6 +77,7 @@ void Namiono_Service_DHCP::Create_BootServer_List(Server* server, const std::str
 void Namiono_Service_DHCP::Handle_DHCP_Discover(Server* server, const std::string& ident, Client* client, Packet* packet)
 {
 	Packet* response = new Packet(*packet, 1260, DHCP_MSGTYPE::OFFER);
+	printf("%s: Got PXE Discover...\n", ident.c_str());
 
 	response->Add_DHCPOption(DHCP_Option(54, server->Get_IPAddress(ident)));
 	response->set_servername(server->Get_Hostname());
@@ -125,7 +126,7 @@ void Namiono_Service_DHCP::Handle_DHCP_Discover(Server* server, const std::strin
 
 void Namiono_Service_DHCP::GenerateBootMenue(const Client* client, std::vector<DHCP_Option>* vendorOpts)
 {
-	_SIZE_T offset = 0;
+	_SIZET offset = 0;
 	char menubuffer[1024];
 
 	ClearBuffer(menubuffer, sizeof menubuffer);
@@ -176,9 +177,9 @@ void Namiono_Service_DHCP::GenerateBootMenue(const Client* client, std::vector<D
 	offset += sizeof(unsigned char);
 
 	memcpy(&promptbuffer[offset], prompt.c_str(),
-		static_cast<_SIZE_T>(prompt.size()));
+		static_cast<_SIZET>(prompt.size()));
 
-	offset += static_cast<_SIZE_T>(prompt.size());
+	offset += static_cast<_SIZET>(prompt.size());
 
 	vendorOpts->emplace_back(static_cast<unsigned char>(PXE_MENU_PROMPT),
 		static_cast<unsigned char>(offset), promptbuffer);
@@ -231,6 +232,7 @@ void Namiono_Service_DHCP::Handle_WDS_Options(Server* server, const std::string&
 void Namiono_Service_DHCP::Handle_DHCP_Request(Server* server, const std::string& ident, Client* client, Packet* packet)
 {
 	Packet* response = new Packet(*packet, 1024, DHCP_MSGTYPE::ACK);
+	printf("%s: Got PXE Request...\n", ident.c_str());
 	response->Add_DHCPOption(DHCP_Option(54, server->Get_IPAddress(ident)));
 	response->set_servername(server->Get_Hostname());
 	response->set_nextIP(server->Get_IPAddress(ident));
@@ -249,7 +251,7 @@ void Namiono_Service_DHCP::Handle_DHCP_Request(Server* server, const std::string
 
 			std::vector<DHCP_Option> options;
 
-			for (_SIZE_T i = 0; i < packet->get_Length(); i++)
+			for (_SIZET i = 0; i < packet->get_Length(); i++)
 			{
 				if (static_cast<unsigned char>(vendorbuffer[i]) == static_cast<unsigned char>(0xff) ||
 					static_cast<unsigned char>(vendorbuffer[i]) == 0x00)
@@ -294,7 +296,7 @@ void Namiono_Service_DHCP::Handle_DHCP_Request(Server* server, const std::string
 
 				std::vector<DHCP_Option> options;
 
-				for (_SIZE_T i = 0; i < packet->get_Length(); i++)
+				for (_SIZET i = 0; i < packet->get_Length(); i++)
 				{
 					if (static_cast<unsigned char>(vendorbuffer[i]) == static_cast<unsigned char>(0xff) ||
 						static_cast<unsigned char>(vendorbuffer[i]) == 0x00)
@@ -370,18 +372,25 @@ void Namiono_Service_DHCP::Handle_Service_Request(Server* server, const std::str
 		return;
 	}
 
-	if (Functions::Compare(packet->Get_DHCPOption(60).Value, "PXEClient", 9))
-		client->DHCP->Set_Vendor(PXEClient);
+	if (!packet->Has_DHCPOption(60))
+	{
+		printf("[W] Class ID is missing!\n");
+	}
 	else
 	{
-		if (Functions::Compare(packet->Get_DHCPOption(60).Value, "PXEServer", 9))
-			client->DHCP->Set_Vendor(PXEServer);
+		if (Functions::Compare(packet->Get_DHCPOption(60).Value, "PXEClient", 9))
+			client->DHCP->Set_Vendor(PXEClient);
 		else
 		{
-			if (Functions::Compare(packet->Get_DHCPOption(60).Value, "APPLEBSDP", 9))
-				client->DHCP->Set_Vendor(APPLEBSDP);
+			if (Functions::Compare(packet->Get_DHCPOption(60).Value, "PXEServer", 9))
+				client->DHCP->Set_Vendor(PXEServer);
 			else
-				return;
+			{
+				if (Functions::Compare(packet->Get_DHCPOption(60).Value, "APPLEBSDP", 9))
+					client->DHCP->Set_Vendor(APPLEBSDP);
+				else
+					return;
+			}
 		}
 	}
 
@@ -410,6 +419,8 @@ void Namiono_Service_DHCP::Handle_Service_Request(Server* server, const std::str
 			break;
 		}
 	}
+    else
+		printf("[W] %s: PXE Boot aborted -> DROPPING!\n", ident.c_str());
 
 	if (client->DHCP->Get_State() == DHCP_DONE || client->DHCP->Get_State() == DHCP_ABORT)
 		server->Remove_Client(client->Get_Ident());

@@ -5,16 +5,6 @@ namespace Namiono
 	{
 		Server server;
 
-		void __Update(const unsigned int interval = 60)
-		{
-			unsigned int sleep = interval * 1000;
-			while (server.IsRunning())
-			{
-				Sleep(sleep);
-				server.Update();
-			}
-		}
-
 		bool __Initialize()
 		{
 			printf("Namiono - PXE Service Version 0.5\n");
@@ -37,9 +27,6 @@ namespace Namiono
 			if (!__Initialize())
 				return -1;
 
-			std::thread _workerThread = std::thread(__Update, SETTINGS.SERVER_UPDATE_DELAY);
-			_workerThread.detach();
-
 			server.Listen(Handle_Request);
 
 			server.Shutdown();
@@ -48,7 +35,7 @@ namespace Namiono
 		}
 
 		void Handle_Request(const ServiceType* servicetype, const std::string& ident,
-			const sockaddr_in* remote, const char* buffer, const _SIZE_T length)
+			const struct sockaddr_in* remote, const char* buffer, const _SIZET length)
 		{
 			Packet* packet = new Packet(servicetype, buffer, &length);
 

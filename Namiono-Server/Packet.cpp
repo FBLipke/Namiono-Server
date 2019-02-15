@@ -1,6 +1,6 @@
 #include <Namiono-Server.h>
 
-EXPORT Packet::Packet(const ServiceType* serviceType, const char* data, const _SIZE_T* length)
+EXPORT Packet::Packet(const ServiceType* serviceType, const char* data, const _SIZET* length)
 {
 	this->serviceType = *serviceType;
 	this->packetLength = 0;
@@ -44,24 +44,24 @@ EXPORT Packet::Packet(const ServiceType* serviceType, const char* data, const _S
 			}
 
 			this->packetLength = *length;
-			if (this->get_Length() <= static_cast<_SIZE_T>(240))
+			if (this->get_Length() <= static_cast<_SIZET>(240))
 				break;
 
-			for (_SIZE_T i = 240; i < this->get_Length(); i++)
+			for (_SIZET i = 240; i < this->get_Length(); i++)
 			{
 				if (static_cast<unsigned char>(this->Get_Buffer()[i]) == static_cast<unsigned char>(0xff))
 					break;
 
 				if (static_cast<unsigned char>(this->Get_Buffer()[i + 1]) == static_cast<unsigned char>(1))
 				{
-					auto x = this->Get_Buffer()[i];
+					unsigned char x = this->Get_Buffer()[i];
 					Add_DHCPOption(DHCP_Option(static_cast<unsigned char>(x),
-						static_cast<unsigned char>(this->Get_Buffer()[i + 2])));
+						static_cast<unsigned char>(this->Get_Buffer()[i + sizeof(unsigned short)])));
 				}
 				else
 				{
 					Add_DHCPOption(DHCP_Option(static_cast<unsigned char>(this->Get_Buffer()[i]),
-						static_cast<unsigned char>(this->Get_Buffer()[i + 1]), &this->Get_Buffer()[i + 2]));
+						static_cast<unsigned char>(this->Get_Buffer()[i + 1]), &this->Get_Buffer()[i + sizeof(unsigned short)]));
 				}
 
 				i += 1 + this->Get_Buffer()[i + 1];
@@ -72,7 +72,7 @@ EXPORT Packet::Packet(const ServiceType* serviceType, const char* data, const _S
 		}
 		break;
 	case ServiceType::TFTP_SERVER:
-		memcpy(&tftp_op, this->Get_Buffer(), 2);
+		memcpy(&tftp_op, this->Get_Buffer(), sizeof(unsigned short));
 
 		switch (static_cast<TFTP_OPCODE>(BS16(tftp_op)))
 		{
@@ -89,15 +89,15 @@ EXPORT Packet::Packet(const ServiceType* serviceType, const char* data, const _S
 				std::stringstream* sso = new std::stringstream;
 				std::stringstream* ssv = new std::stringstream;
 
-				_SIZE_T position = 0;
+				_SIZET position = 0;
 				char value[64];
 				ClearBuffer(value, 64);
 
-				for (_SIZE_T i = 2; i < *length; i++)
+				for (_SIZET i = sizeof(unsigned short); i < *length; i++)
 					if (memcmp(option, &this->Get_Buffer()[i], strlen(option)) == 0)
 					{
 						printf("option \"%s\" in packet!\n", option);
-						position = static_cast<_SIZE_T>(i + (strlen(option) + 1));
+						position = static_cast<_SIZET>(i + (strlen(option) + 1));
 
 						strcpy(value, &this->Get_Buffer()[position]);
 						*sso << option;
@@ -134,9 +134,9 @@ EXPORT Packet::Packet(const ServiceType* serviceType, const char* data, const _S
 	}
 }
 
-EXPORT Packet::Packet(Packet& packet, const _SIZE_T length, DHCP_MSGTYPE msgType)
+EXPORT Packet::Packet(Packet& packet, const _SIZET length, DHCP_MSGTYPE msgType)
 {
-	_SIZE_T maxpktSize = length;
+	_SIZET maxpktSize = length;
 
 	if (packet.Has_DHCPOption(57))
 		memcpy(&maxpktSize, &packet.Get_DHCPOption(57).Value[0], 2);
@@ -169,13 +169,12 @@ EXPORT Packet::Packet(Packet& packet, const _SIZE_T length, DHCP_MSGTYPE msgType
 		Add_DHCPOption(packet.Get_DHCPOption(97));
 }
 
-EXPORT Packet::Packet(const _SIZE_T length, Packet_OPCode opcode)
+EXPORT Packet::Packet(const _SIZET length, Packet_OPCode opcode)
 {
 	this->buffer = new char[length];
 	ClearBuffer(this->Get_Buffer(), length);
 	this->set_Length(length);
 	this->Set_Opcode(opcode);
-
 }
 
 EXPORT Packet::~Packet()
@@ -185,7 +184,7 @@ EXPORT Packet::~Packet()
 	tftp_options.clear();
 }
 
-EXPORT INLINE _SIZE_T Packet::Write(const void* data, const _SIZE_T length, const _SIZE_T position)
+EXPORT _SIZET Packet::Write(const void* data, const _SIZET length, const _SIZET position)
 {
 	memcpy(&this->Get_Buffer()[position], data, length);
 	this->set_Length(length);
@@ -193,24 +192,24 @@ EXPORT INLINE _SIZE_T Packet::Write(const void* data, const _SIZE_T length, cons
 	return length;
 }
 
-EXPORT INLINE void Packet::Write(unsigned int data, const _SIZE_T position)
+EXPORT void Packet::Write(unsigned int data, const _SIZET position)
 {
 	memcpy(&this->Get_Buffer()[position], &data, sizeof(unsigned int));
 	this->set_Length(sizeof(unsigned int));
 }
 
-EXPORT INLINE void Packet::Write(unsigned char data, const _SIZE_T position)
+EXPORT void Packet::Write(unsigned char data, const _SIZET position)
 {
 	memcpy(&this->Get_Buffer()[position], &data, sizeof(unsigned char));
 	this->set_Length(sizeof(unsigned char));
 }
 
-EXPORT INLINE void Packet::Write(unsigned short data, const _SIZE_T position)
+EXPORT void Packet::Write(unsigned short data, const _SIZET position)
 {
 	memcpy(&this->Get_Buffer()[position], &data, sizeof(unsigned short));
 }
 
-EXPORT INLINE _SIZE_T Packet::Read(void* data, const _SIZE_T length, const _SIZE_T position)
+EXPORT _SIZET Packet::Read(void* data, const _SIZET length, const _SIZET position)
 {
 	memcpy(data, &this->Get_Buffer()[position], length);
 	return length;
@@ -242,12 +241,12 @@ void Packet::Remove_TFTPOption(const std::string& opt)
 		tftp_options.erase(opt);
 }
 
-EXPORT INLINE bool Packet::Has_DHCPOption(const unsigned char& option)
+EXPORT bool Packet::Has_DHCPOption(const unsigned char& option)
 {
 	return dhcp_options.find(option) != dhcp_options.end();
 }
 
-EXPORT INLINE bool Packet::Has_TFTPOption(const std::string& option)
+EXPORT bool Packet::Has_TFTPOption(const std::string& option)
 {
 	return tftp_options.find(option) != tftp_options.end();
 }
@@ -255,13 +254,14 @@ EXPORT INLINE bool Packet::Has_TFTPOption(const std::string& option)
 EXPORT void Packet::Set_Block(const unsigned short block)
 {
 	unsigned short blk = block;
-	memcpy(&this->Get_Buffer()[2], &blk, 2);
+	memcpy(&this->Get_Buffer()[sizeof(unsigned short)],
+        &blk, sizeof(unsigned short));
 }
 
 unsigned short Packet::Get_Block()
 {
 	unsigned short blk = 0;
-	memcpy(&blk, &this->Get_Buffer()[2], sizeof blk);
+	memcpy(&blk, &this->Get_Buffer()[sizeof(unsigned short)], sizeof blk);
 	return BS16(blk);
 }
 
@@ -288,7 +288,7 @@ EXPORT void Packet::Commit()
 		In DHCP packets it is the end Option.
 	*/
 
-	_SIZE_T _offset = 0;
+	_SIZET _offset = 0;
 	switch (this->Get_Opcode())
 	{
 	case DHCP_RES:
@@ -322,8 +322,8 @@ EXPORT void Packet::Commit()
 
 		for (auto & option : tftp_options)
 		{
-			_offset += Write(option.first.c_str(), static_cast<_SIZE_T>(option.first.size() + 1), _offset);
-			_offset += static_cast<_SIZE_T>(Write(&option.second.Value, option.second.Length, _offset) + 1);
+			_offset += Write(option.first.c_str(), static_cast<_SIZET>(option.first.size() + 1), _offset);
+			_offset += static_cast<_SIZET>(Write(&option.second.Value, option.second.Length, _offset) + 1);
 
 			this->set_Length(_offset);
 		}
@@ -334,18 +334,18 @@ EXPORT void Packet::Commit()
 		break;
 	case BINL_RSU:
 	case BINL_CHA:
-		_SIZE_T innerlen = (this->get_Length() - 8);
+		_SIZET innerlen = (this->get_Length() - 8);
 		Write(&innerlen, 4, 4);
 		break;
 	}
 }
 
-EXPORT INLINE Packet_OPCode Packet::Get_Opcode()
+EXPORT Packet_OPCode Packet::Get_Opcode()
 {
 	return this->opcode;
 }
 
-EXPORT INLINE char* Packet::Get_Buffer()
+EXPORT char* Packet::Get_Buffer()
 {
 	return this->buffer;
 }
@@ -390,25 +390,25 @@ EXPORT void Packet::Set_Opcode(Packet_OPCode op)
 	}
 }
 
-EXPORT INLINE void Packet::set_opcode(const DHCP_OPCODE op)
+EXPORT void Packet::set_opcode(const DHCP_OPCODE op)
 {
 	Write(static_cast<unsigned char>(op), 0);
 }
 
-EXPORT INLINE DHCP_OPCODE Packet::get_opcode()
+EXPORT DHCP_OPCODE Packet::get_opcode()
 {
 	unsigned char _tmp = 0;
-	Read(&_tmp, 1, 0);
+	Read(&_tmp, sizeof(unsigned char), 0);
 
 	return static_cast<DHCP_OPCODE>(_tmp);
 }
 
-EXPORT INLINE void Packet::set_hwtype(const DHCP_HARDWARETYPE hwtype)
+EXPORT void Packet::set_hwtype(const DHCP_HARDWARETYPE hwtype)
 {
 	Write(static_cast<unsigned char>(hwtype), 1);
 }
 
-EXPORT INLINE DHCP_HARDWARETYPE Packet::get_hwtype()
+EXPORT DHCP_HARDWARETYPE Packet::get_hwtype()
 {
 	unsigned char _tmp = 0;
 	Read(&_tmp, sizeof(unsigned char), 1);
@@ -416,12 +416,12 @@ EXPORT INLINE DHCP_HARDWARETYPE Packet::get_hwtype()
 	return static_cast<DHCP_HARDWARETYPE>(_tmp);
 }
 
-EXPORT INLINE void Packet::set_hwlength(const unsigned char length)
+EXPORT void Packet::set_hwlength(const unsigned char length)
 {
 	Write(static_cast<unsigned char>(length), 2);
 }
 
-EXPORT INLINE unsigned char Packet::get_hwlength()
+EXPORT unsigned char Packet::get_hwlength()
 {
 	unsigned char _tmp = 0;
 	Read(&_tmp, sizeof(unsigned char), 2);
@@ -429,12 +429,12 @@ EXPORT INLINE unsigned char Packet::get_hwlength()
 	return _tmp;
 }
 
-EXPORT INLINE void Packet::set_hops(const unsigned char hops)
+EXPORT void Packet::set_hops(const unsigned char hops)
 {
 	Write(static_cast<unsigned char>(hops), 3);
 }
 
-EXPORT INLINE unsigned char Packet::get_hops()
+EXPORT unsigned char Packet::get_hops()
 {
 	unsigned char _tmp = 0;
 	Read(&_tmp, sizeof(unsigned char), 3);
@@ -442,12 +442,12 @@ EXPORT INLINE unsigned char Packet::get_hops()
 	return _tmp;
 }
 
-EXPORT INLINE void Packet::set_xid(const unsigned int xid)
+EXPORT void Packet::set_xid(const unsigned int xid)
 {
 	Write(static_cast<unsigned int>(xid), 4);
 }
 
-EXPORT INLINE unsigned int Packet::get_xid()
+EXPORT unsigned int Packet::get_xid()
 {
 	unsigned int _tmp = 0;
 	Read(&_tmp, sizeof(unsigned int), 4);
@@ -455,12 +455,12 @@ EXPORT INLINE unsigned int Packet::get_xid()
 	return _tmp;
 }
 
-EXPORT INLINE void Packet::set_secs(const unsigned short secs)
+EXPORT void Packet::set_secs(const unsigned short secs)
 {
 	Write(static_cast<unsigned short>(secs), 8);
 }
 
-EXPORT INLINE unsigned short Packet::get_secs()
+EXPORT unsigned short Packet::get_secs()
 {
 	unsigned short _tmp = 0;
 	Read(&_tmp, sizeof(unsigned short), 8);
@@ -468,12 +468,12 @@ EXPORT INLINE unsigned short Packet::get_secs()
 	return _tmp;
 }
 
-EXPORT INLINE void Packet::set_flags(const DHCP_FLAGS flags)
+EXPORT void Packet::set_flags(const DHCP_FLAGS flags)
 {
 	Write(static_cast<unsigned short>(flags), 10);
 }
 
-EXPORT INLINE DHCP_FLAGS Packet::get_flags()
+EXPORT DHCP_FLAGS Packet::get_flags()
 {
 	unsigned short _tmp = 0;
 	Read(&_tmp, sizeof(unsigned short), 10);
@@ -481,12 +481,12 @@ EXPORT INLINE DHCP_FLAGS Packet::get_flags()
 	return static_cast<DHCP_FLAGS>(_tmp);
 }
 
-EXPORT INLINE void Packet::set_clientIP(const _IPADDR ip)
+EXPORT void Packet::set_clientIP(const _IPADDR ip)
 {
 	Write(&ip, sizeof(_IPADDR), 12);
 }
 
-EXPORT INLINE _IPADDR Packet::get_clientIP()
+EXPORT _IPADDR Packet::get_clientIP()
 {
 	_IPADDR _tmp = 0;
 	Read(&_tmp, sizeof(_IPADDR), 12);
@@ -494,12 +494,12 @@ EXPORT INLINE _IPADDR Packet::get_clientIP()
 	return _tmp;
 }
 
-EXPORT INLINE void Packet::set_yourIP(const _IPADDR ip)
+EXPORT void Packet::set_yourIP(const _IPADDR ip)
 {
 	Write(&ip, sizeof(_IPADDR), 16);
 }
 
-EXPORT INLINE _IPADDR Packet::get_yourIP()
+EXPORT _IPADDR Packet::get_yourIP()
 {
 	_IPADDR _tmp = 0;
 	Read(&_tmp, sizeof(_IPADDR), 16);
@@ -507,12 +507,12 @@ EXPORT INLINE _IPADDR Packet::get_yourIP()
 	return _tmp;
 }
 
-EXPORT INLINE void Packet::set_nextIP(const _IPADDR ip)
+EXPORT void Packet::set_nextIP(const _IPADDR ip)
 {
 	Write(&ip, sizeof(_IPADDR), 20);
 }
 
-EXPORT INLINE _IPADDR Packet::get_nextIP()
+EXPORT _IPADDR Packet::get_nextIP()
 {
 	_IPADDR _tmp = 0;
 	Read(&_tmp, sizeof(_IPADDR), 20);
@@ -520,12 +520,12 @@ EXPORT INLINE _IPADDR Packet::get_nextIP()
 	return _tmp;
 }
 
-EXPORT INLINE void Packet::set_relayIP(const _IPADDR ip)
+EXPORT void Packet::set_relayIP(const _IPADDR ip)
 {
 	Write(&ip, sizeof(_IPADDR), 24);
 }
 
-EXPORT INLINE _IPADDR Packet::get_relayIP()
+EXPORT _IPADDR Packet::get_relayIP()
 {
 	_IPADDR _tmp = 0;
 	Read(&_tmp, sizeof(_IPADDR), 24);
@@ -533,25 +533,25 @@ EXPORT INLINE _IPADDR Packet::get_relayIP()
 	return _tmp;
 }
 
-EXPORT INLINE void Packet::set_hwaddress(const void* mac)
+EXPORT void Packet::set_hwaddress(const void* mac)
 {
 	Write(&mac, 16, 28);
 }
 
-EXPORT INLINE void Packet::get_hwaddress(char* out, _SIZE_T length)
+EXPORT void Packet::get_hwaddress(char* out, _SIZET length)
 {
 	ClearBuffer(&out, length);
 
 	Read(&out, length, 28);
 }
 
-EXPORT INLINE void Packet::set_servername(const std::string& sname)
+EXPORT void Packet::set_servername(const std::string& sname)
 {
 	ClearBuffer(&this->Get_Buffer()[44], 64);
-	Write(sname.c_str(), static_cast<_SIZE_T>(sname.size()), 44);
+	Write(sname.c_str(), static_cast<_SIZET>(sname.size()), 44);
 }
 
-EXPORT INLINE std::string Packet::get_servername()
+EXPORT std::string Packet::get_servername()
 {
 	char _tmp[64];
 	ClearBuffer(&_tmp, 64);
@@ -561,13 +561,13 @@ EXPORT INLINE std::string Packet::get_servername()
 	return std::string(_tmp);
 }
 
-EXPORT INLINE void Packet::set_filename(const std::string& file)
+EXPORT void Packet::set_filename(const std::string& file)
 {
 	ClearBuffer(&this->Get_Buffer()[108], 128);
-	Write(file.c_str(), static_cast<_SIZE_T>(file.size()), 108);
+	Write(file.c_str(), static_cast<_SIZET>(file.size()), 108);
 }
 
-EXPORT INLINE std::string Packet::get_filename()
+EXPORT std::string Packet::get_filename()
 {
 	char _tmp[128];
 	ClearBuffer(&_tmp, 128);
@@ -577,7 +577,7 @@ EXPORT INLINE std::string Packet::get_filename()
 	return std::string(_tmp);
 }
 
-EXPORT INLINE void Packet::set_cookie()
+EXPORT void Packet::set_cookie()
 {
 	this->Get_Buffer()[236] = static_cast<unsigned char>(0x63);
 	this->Get_Buffer()[237] = static_cast<unsigned char>(0x82);
@@ -585,7 +585,7 @@ EXPORT INLINE void Packet::set_cookie()
 	this->Get_Buffer()[239] = static_cast<unsigned char>(0x63);
 }
 
-EXPORT INLINE unsigned int Packet::get_cookie()
+EXPORT unsigned int Packet::get_cookie()
 {
 	unsigned int _tmp = 0;
 
@@ -594,22 +594,22 @@ EXPORT INLINE unsigned int Packet::get_cookie()
 	return _tmp;
 }
 
-void Packet::set_Length(const _SIZE_T length)
+EXPORT void Packet::set_Length(const _SIZET length)
 {
 	this->packetLength += length;
 }
 
-_SIZE_T Packet::get_Length()
+EXPORT _SIZET Packet::get_Length()
 {
 	return this->packetLength;
 }
 
-EXPORT INLINE DHCP_Option Packet::Get_DHCPOption(const unsigned char option)
+EXPORT DHCP_Option Packet::Get_DHCPOption(const unsigned char option)
 {
 	return this->dhcp_options.at(option);
 }
 
-EXPORT INLINE TFTP_Option Packet::Get_TFTPOption(const std::string option)
+EXPORT TFTP_Option Packet::Get_TFTPOption(const std::string option)
 {
 	return this->tftp_options.at(option);
 }

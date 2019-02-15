@@ -1,9 +1,5 @@
 #include <Namiono-Server.h>
 
-Client::Client()
-{
-}
-
 Client::Client(const std::string& ident, const ServiceType servicetype, const sockaddr_in remote)
 {
 	this->Set_Hint(remote);

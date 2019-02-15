@@ -13,7 +13,7 @@ void Namiono_Service_TFTP::Update()
 {
 }
 
-void Namiono_Service_TFTP::Handle_Service_Request(Server* server, const std::string & ident, Client * client, Packet * packet)
+void Namiono_Service_TFTP::Handle_Service_Request(Server* server, const std::string& ident, Client* client, Packet* packet)
 {
 	if (client == nullptr)
 		return;
@@ -35,9 +35,9 @@ void Namiono_Service_TFTP::Handle_Service_Request(Server* server, const std::str
 		server->Remove_Client(client->Get_Ident());
 }
 
-_SIZE_T ReadFile(char* dstBuffer, const std::string& file, const _SIZE_T index, const _SIZE_T count)
+_SIZET ReadFile(char* dstBuffer, const std::string& file, const _SIZET index, const _SIZET count)
 {
-	_SIZE_T bytesRead = 0;
+	_SIZET bytesRead = 0;
 
 	FILE* fil = fopen(file.c_str(), "rb");
 
@@ -50,16 +50,16 @@ _SIZE_T ReadFile(char* dstBuffer, const std::string& file, const _SIZE_T index, 
 	fseek(fil, index, SEEK_SET);
 
 
-	bytesRead = static_cast<_SIZE_T>(fread(&dstBuffer, 1, count, fil));
+	bytesRead = static_cast<_SIZET>(fread(&dstBuffer, 1, count, fil));
 
 	fclose(fil);
 
 	return bytesRead;
 }
 
-_SIZE_T FileLength(const std::string& file)
+_SIZET FileLength(const std::string& file)
 {
-	_SIZE_T bytes = 0;
+	_SIZET bytes = 0;
 
 	FILE* fil = fopen(file.c_str(), "rb");
 
@@ -90,7 +90,7 @@ void Namiono_Service_TFTP::Handle_TFTP_RRQ(Server* server, const std::string& id
 	{
 		client->TFTP->SetTFTPState(TFTP_ERROR);
 		std::unique_ptr<Packet> response(new Packet((client->TFTP.get()->GetFilename().size() + 1) + 4, Packet_OPCode::TFTP_ERR));
-		response->Write(static_cast<unsigned short>(BS16(5)));
+		response->Write(static_cast<unsigned short>(BS16(5)), 0);
 		response->Write(static_cast<unsigned short>(BS16(1)), 2);
 		
 		response->Write(client->TFTP.get()->GetFilename().c_str(),
@@ -162,12 +162,12 @@ void Namiono_Service_TFTP::Handle_TFTP_ACK(Server* server, const std::string& id
 	}
 
 	FILE* fil = fopen(client->TFTP.get()->GetFilename().c_str(), "rb");
-	_SIZE_T chunk = 0;
+	_SIZET chunk = 0;
 	
 	for (unsigned short i = 0; i < client->TFTP->GetWindowSize(); i++)
 	{
-		chunk = ((_SIZE_T)client->TFTP.get()->GetBlockSize() < (client->TFTP.get()->GetBytesToRead() - client->TFTP.get()->GetBytesRead())) ?
-			(_SIZE_T)client->TFTP.get()->GetBlockSize() : (client->TFTP.get()->GetBytesToRead() - client->TFTP.get()->GetBytesRead());
+		chunk = ((_SIZET)client->TFTP.get()->GetBlockSize() < (client->TFTP.get()->GetBytesToRead() - client->TFTP.get()->GetBytesRead())) ?
+			(_SIZET)client->TFTP.get()->GetBlockSize() : (client->TFTP.get()->GetBytesToRead() - client->TFTP.get()->GetBytesRead());
 
 		if (fseek(fil, client->TFTP.get()->GetBytesRead(), SEEK_SET) != 0)
 			break;

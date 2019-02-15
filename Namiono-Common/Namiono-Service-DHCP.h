@@ -24,8 +24,8 @@ private:
 
 	std::vector<BootServerEntry> Serverlist;
 	std::vector<_IPADDR> addresses;
-	sqlite3_stmt* stmt = NULL;
+	//sqlite3_stmt* stmt = NULL;
 	const char* data = NULL;
-	sqlite3* db = NULL;
+	//sqlite3* db = NULL;
 };
 

@@ -2,6 +2,7 @@
 
 Server::Server()
 {
+	this->isRunning = false;
 #ifdef _WIN32
 	WSADATA wsa;
 	int retval = WSAStartup(MAKEWORD(2, 2), &wsa);
@@ -24,13 +25,11 @@ _IPADDR& Server::Get_IPAddress(const std::string & ident)
 
 bool Server::Initialize()
 {
-	bool retval = false;
+	bool retval = true;
 
 	for (auto & endpoint : endpoints)
 	{
-		retval = endpoint.second.get()->Initialize();
-		if (!retval)
-			printf("Bind failed!\n");
+        endpoint.second.get()->Initialize();
 	}
 
 	return retval;
@@ -113,18 +112,17 @@ void Server::Add_Endpoint(const ServiceType servicetype, const ServerMode server
 {
 	char suffix[4];
 	ClearBuffer(suffix, sizeof suffix);
-	char mac[32];
-	ClearBuffer(mac, sizeof mac);
 	unsigned short _port;
 	char hname[64];
 	ClearBuffer(&hname, sizeof hname);
-	unsigned long dwBufLen = sizeof(IP_ADAPTER_INFO);
-	_IPADDR netmask;
-	_IPADDR ADDRESS;
-	std::string ident;
+	unsigned long dwBufLen = 0;
+	_IPADDR netmask = 0;
+	_IPADDR ADDRESS = 0;
+	std::string ident = "";
+#ifdef _WIN32
+	dwBufLen = sizeof(IP_ADAPTER_INFO);
 
-	// Bind each Endpoint on each Adapter... 
-	auto AdapterInfo = (IP_ADAPTER_INFO *)malloc(sizeof(IP_ADAPTER_INFO));
+	IP_ADAPTER_INFO AdapterInfo = (IP_ADAPTER_INFO *)malloc(sizeof(IP_ADAPTER_INFO));
 
 	if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == 111L)
 	{
@@ -134,7 +132,13 @@ void Server::Add_Endpoint(const ServiceType servicetype, const ServerMode server
 
 	if (GetAdaptersInfo(AdapterInfo, &dwBufLen) == 0)
 	{
-		auto pAdapterInfo = AdapterInfo;
+#else
+    struct sockaddr_in *sa;
+	ifaddrs *AdapterInfo, *pAdapterInfo;
+	if (getifaddrs(&AdapterInfo) == 0)
+	{
+#endif
+		pAdapterInfo = AdapterInfo;
 		do
 		{
 			sprintf(suffix, "%d", static_cast<unsigned char>(endpoints.size()));
@@ -156,33 +160,35 @@ void Server::Add_Endpoint(const ServiceType servicetype, const ServerMode server
 				break;
 			}
 
-			auto _hwlen = 6;
-			auto _hwtype = 1;
-
-			sprintf(mac, "%02X:%02X:%02X:%02X:%02X:%02X",
-				pAdapterInfo->Address[0], pAdapterInfo->Address[1],
-				pAdapterInfo->Address[2], pAdapterInfo->Address[3],
-				pAdapterInfo->Address[4], pAdapterInfo->Address[5]);
-
+			unsigned char _hwlen = 6;
+			unsigned char _hwtype = 1;
+#ifdef _WIN32
 			netmask = inet_addr(pAdapterInfo->IpAddressList.IpMask.String);
 			ADDRESS = inet_addr(pAdapterInfo->IpAddressList.IpAddress.String);
+#else
+			netmask = inet_addr("255.255.255.0");
+            sa = (struct sockaddr_in *) pAdapterInfo->ifa_addr;
+			ADDRESS = sa->sin_addr.s_addr;
 
-			_hwtype = pAdapterInfo->Type == 6 ? 1 : 0;
-			_hwlen = pAdapterInfo->AddressLength;
-
-			if (_hwtype == 1) // Only Ethernet is allowed for now.
+			if (pAdapterInfo->ifa_addr->sa_family == AF_INET) // Only Ethernet is allowed for now.
 			{
-				auto _ident = ident + "(" + std::string(suffix) + ")";
-
-				endpoints.try_emplace(_ident, new Endpoint(servicetype, ADDRESS, _port));
+#endif
+				std::string _ident = ident + "(" + std::string(suffix) + ")";
+				endpoints.emplace(_ident, new Endpoint(servicetype, ADDRESS, _port, 16384));
+#ifdef _WIN32
+			pAdapterInfo = pAdapterInfo->Next;
+#else
 			}
 
-			pAdapterInfo = pAdapterInfo->Next;
+			pAdapterInfo = pAdapterInfo->ifa_next;
+#endif
 		} while (pAdapterInfo);
 	}
-
+#ifdef _WIN32
 	free(AdapterInfo);
-
+#else
+	freeifaddrs(AdapterInfo);
+#endif
 	gethostname(hname, sizeof hname);
 	this->hostname = std::string(hname);
 }
@@ -192,53 +198,67 @@ Client* Server::Add_Client(const ServiceType servicetype, const sockaddr_in* rem
 	std::string id = std::string(inet_ntoa(remote->sin_addr));
 
 	if (!Has_Client(id))
-		this->clients.insert(std::pair<std::string, std::unique_ptr<Client>>
-			(id, new Client(id, servicetype, *remote)));
+		this->clients.emplace(id, new Client(id, servicetype, *remote));
 
 	return clients.at(id).get();
 }
 
-int Server::Listen(const std::function<void(const ServiceType* servicetype,
-	const std::string&, const sockaddr_in*, const char*, int)> callback)
+int Server::Listen(const std::function<void(const ServiceType*,
+	const std::string&, const struct sockaddr_in*, const char*, _SIZET)> callback)
 {
 	this->isRunning = true;
 	int retval = SOCKET_ERROR;
-	
-	printf("[I] Waiting for requests...!\n\n");
+	timeval timeout;
 
+
+	printf("[I] Waiting for requests...!\n\n");
+#ifdef __WIN32
 	while (this->endpoints.size() > 0)
 	{
 		FD_ZERO(&_fd_read);
 		FD_ZERO(&_fd_except);
 
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 2;
 		for (auto & endpoint : endpoints)
 		{
 			if (!endpoint.second.get()->IsListening())
 			{
 				Remove_Endpoint(endpoint.first);
-				break;
+				continue;
 			}
 
 			FD_SET(*endpoint.second.get()->Get_Socket(), &_fd_read);
 			FD_SET(*endpoint.second.get()->Get_Socket(), &_fd_except);
 		}
 
-		retval = select(0, &_fd_read, &_fd_write, &_fd_except, NULL);
+		retval = select(0, &_fd_read, &_fd_write, &_fd_except, &timeout);
 		if (retval == SOCKET_ERROR)
-			break;
+		{
+			printf("Error select(): %s\n", strerror(errno));
+    	    break;
+        }
+
+
 
 		if (retval == 0)
 			continue;
-
+		printf("epic...\n");
 		for (auto & endpoint : endpoints)
 		{
+			printf("after select...\n");
+
 			if (!endpoint.second.get()->IsListening())
 				continue;
 
 			if (FD_ISSET(*endpoint.second.get()->Get_Socket(), &_fd_read))
 			{
 				sockaddr_in remote;
+#ifdef _WIN32
 				int fromlen = sizeof(remote);
+#else
+				socklen_t fromlen = sizeof(remote);
+#endif
 				memset(&remote, 0, sizeof remote);
 
 				retval = recvfrom(*endpoint.second.get()->Get_Socket(),
@@ -246,7 +266,11 @@ int Server::Listen(const std::function<void(const ServiceType* servicetype,
 					(struct sockaddr*)&remote, &fromlen);
 
 				if (retval == SOCKET_ERROR)
+				{
+					printf("Error select(): %s\n", strerror(errno));
 					break;
+				}
+
 				std::thread _notify(callback, endpoint.second.get()->Get_ServiceType(),
 					endpoint.first, &remote, endpoint.second.get()->Get_Buffer(), retval);
 
@@ -257,22 +281,107 @@ int Server::Listen(const std::function<void(const ServiceType* servicetype,
 			if (FD_ISSET(*endpoint.second.get()->Get_Socket(), &_fd_except))
 			{
 				int errNum = 0;
+#ifdef _WIN32
 				int len = sizeof(errNum);
-
+#else
+				socklen_t len = sizeof(errNum);
+#endif
 				retval = getsockopt(*endpoint.second.get()->Get_Socket(),
 					SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&errNum), &len);
 
-				if (errNum != 0 || retval == SOCKET_ERROR)
+				if (errNum != 0)
 				{
 					printf("[E] Socket Error: %d\n", errNum);
 					break;
 				}
 
 				FD_CLR(*endpoint.second.get()->Get_Socket(), &_fd_except);
-				break;
+			}
+		}
+	} // while
+
+#else
+	while(endpoints.size() > 0)
+	{
+		FD_ZERO(&_fd_read);
+		FD_ZERO(&_fd_except);
+
+		for (auto & endpoint : endpoints)
+		{
+			// Clear brocken Sockets...
+			if (!endpoint.second.get()->IsListening())
+			{
+				Remove_Endpoint(endpoint.first);
+				continue;
+			}
+
+			FD_SET(*endpoint.second.get()->Get_Socket(), &_fd_read);
+			FD_SET(*endpoint.second.get()->Get_Socket(), &_fd_except);
+		}
+
+		for (auto & endpoint : endpoints)
+		{
+			timeout.tv_sec = 0;
+			timeout.tv_usec = 2;
+
+			retval = select(*endpoint.second.get()->Get_Socket() + 1, &_fd_read, NULL, NULL, &timeout);
+			if (retval == SOCKET_ERROR)
+			{
+				continue;
+			}
+
+			if (retval == 0)
+				continue;
+
+			if (FD_ISSET(*endpoint.second.get()->Get_Socket(), &_fd_read))
+			{
+				sockaddr_in remote;
+#ifdef _WIN32
+				int fromlen = sizeof(remote);
+#else
+				socklen_t fromlen = sizeof(remote);
+#endif
+				memset(&remote, 0, sizeof remote);
+
+				retval = recvfrom(*endpoint.second.get()->Get_Socket(),
+					endpoint.second.get()->Get_Buffer(), 16384, 0,
+					(struct sockaddr*)&remote, &fromlen);
+
+				if (retval == SOCKET_ERROR)
+				{
+					printf("Error select(): %s\n", strerror(errno));
+					break;
+				}
+
+				std::thread _notify(callback, endpoint.second.get()->Get_ServiceType(),
+					endpoint.first, &remote, endpoint.second.get()->Get_Buffer(), retval);
+
+				_notify.join();
+				FD_CLR(*endpoint.second.get()->Get_Socket(), &_fd_read);
+			}
+
+			if (FD_ISSET(*endpoint.second.get()->Get_Socket(), &_fd_except))
+			{
+				int errNum = 0;
+#ifdef _WIN32
+				int len = sizeof(errNum);
+#else
+				socklen_t len = sizeof(errNum);
+#endif
+				retval = getsockopt(*endpoint.second.get()->Get_Socket(),
+					SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&errNum), &len);
+
+				if (errNum != 0)
+				{
+					printf("[E] Socket Error: %d\n", errNum);
+					break;
+				}
+
+				FD_CLR(*endpoint.second.get()->Get_Socket(), &_fd_except);
 			}
 		}
 	}
+#endif
 
 	this->Shutdown();
 

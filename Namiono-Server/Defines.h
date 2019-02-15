@@ -1,28 +1,50 @@
 #pragma once
 #include <vector>
-#include <direct.h>
-
 #ifdef _WIN64
-typedef unsigned long _SIZE_T;
+typedef unsigned long _SIZET;
 typedef unsigned long _IPADDR;
 typedef unsigned long _SOCKET;
+#define _WINDOWS
+#else
+#ifdef _WIN32
+typedef unsigned int _SIZET;
+typedef unsigned int _IPADDR;
+typedef unsigned int _SOCKET;
+#define _WINDOWS
+#endif
+#endif
 
+#ifdef _WINDOWS
+#include <direct.h>
 #define EXPORT __declspec(dllexport)
 #define IMPORT __declspec(dllimport)
 #define INLINE __inline
 #define ClearBuffer(x, y) memset(x, 0, y);
+#define _GET_CUR_WORKINGDIR(p,s) _getcwd(p, s);
 #else
-typedef unsigned int _SIZE_T;
-typedef unsigned int IPAddress;
-typedef unsigned int _SOCKET;
-#define EXPORT EXPORT
-#define IMPORT __declspec(dllimport)
-#define INLINE __inline
+#ifdef __GNUC__
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/select.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <ifaddrs.h>
+
+typedef unsigned long _SIZET;
+typedef unsigned long _IPADDR;
+typedef int _SOCKET;
+#define _GET_CUR_WORKINGDIR(p,s) getcwd(p, s);
+#define INLINE inline
+#define EXPORT __attribute__((visibility("default")))
+#define SOCKET_ERROR -1
+#define closesocket(x) close(x)
 #define ClearBuffer(x, y) memset(x, 0, y);
 #endif
-#ifdef __LINUX__
-#define EXPORT __attribute__((visibility("default")))
-#define ClearBuffer(x, y) memset(x, 0, y);
 #endif
 
 #ifndef __LITTLE_ENDIAN
@@ -33,34 +55,24 @@ typedef unsigned int _SOCKET;
 #define __BIG_ENDIAN						4321
 #endif
 
-#ifndef __BYTE_ORDER
-#if defined(_BIG_ENDIAN)
-#define __BYTE_ORDER __BIG_ENDIAN
-#elif defined(_LITTLE_ENDIAN)
+#ifndef _BYTE_ORDER
+#if defined(__BIG_ENDIAN)
+#define _BYTE_ORDER __BIG_ENDIAN
+#elif defined(__LITTLE_ENDIAN)
 #define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 #endif
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if _BYTE_ORDER == __LITTLE_ENDIAN
 #define BS32(x) x
 #define BS16(x) x
-#elif __BYTE_ORDER == __BIG_ENDIAN
-#define BS16(x) (((unsigned short)(x) >> 8) | (((unsigned short)(x) & 0xff) << 8))
-#define BS32(x) (((unsigned int)(x) >> 24) | (((unsigned int)(x) >> 8) & 0xff00) | \
-				(((unsigned int)(x) << 8) & 0xff0000) | ((unsigned int)(x) << 24))
-#else
+#elif _BYTE_ORDER == __BIG_ENDIAN
 #define BS16(x) (((unsigned short)(x) >> 8) | (((unsigned short)(x) & 0xff) << 8))
 #define BS32(x) (((unsigned int)(x) >> 24) | (((unsigned int)(x) >> 8) & 0xff00) | \
 				(((unsigned int)(x) << 8) & 0xff0000) | ((unsigned int)(x) << 24))
 #endif
 
-#ifdef _WIN32
-#define _GET_CUR_WORKINGDIR(p,s) _getcwd(p, s);
-#else
-#define _GET_CUR_WORKINGDIR(p,s) getcwd(p, s);
-#endif
-
-EXPORT typedef enum ServerMode
+typedef enum ServerMode
 {
 	TCP = 0,
 	TCP6 = 1,
@@ -70,7 +82,7 @@ EXPORT typedef enum ServerMode
 	UNKNOWN = 5
 } ServerMode;
 
-EXPORT typedef enum RBCP_DISCOVERYCONTROL
+typedef enum RBCP_DISCOVERYCONTROL
 {
 	DISABLE_BCAST = 1,
 	DISABLE_MCAST = 2,
@@ -80,7 +92,7 @@ EXPORT typedef enum RBCP_DISCOVERYCONTROL
 
 } RBCP_DISCOVERYCONTROL;
 
-EXPORT typedef enum BootServerType
+typedef enum BootServerType
 {
 	PXEBootstrapServer = 0x0000,
 	WindowsNTBootServer = 0x0001,
@@ -88,27 +100,27 @@ EXPORT typedef enum BootServerType
 	PXEAPITestServer = 0xffff
 } BootServerType;
 
-EXPORT typedef enum BootServerReplyType
+typedef enum BootServerReplyType
 {
 	Boot = 0x0000,
 	Auth = 0x0001
 } BootServerReplyType;
 
 
-EXPORT typedef enum CompareType
+typedef enum CompareType
 {
 	Memory = 0,
 	String = 1
 } CompareType;
 
-EXPORT typedef enum SocketHandle
+typedef enum SocketHandle
 {
 	READ = 0x00,
 	WRITE = 0x01,
 	EXCEPT = 0x02
 } SocketHandle;
 
-EXPORT typedef enum Packet_OPCode
+typedef enum Packet_OPCode
 {
 	DHCP_REQ = 0x00,
 	DHCP_RES = 0x01,
@@ -130,7 +142,7 @@ EXPORT typedef enum Packet_OPCode
 
 
 
-EXPORT typedef enum TFTP_OPCODE
+typedef enum TFTP_OPCODE
 {
 	TFTP_Read = 0x0001,
 	TFTP_Write = 0x0002,
@@ -140,10 +152,10 @@ EXPORT typedef enum TFTP_OPCODE
 	TFTP_Opt = 0x0006
 } TFTP_OPCODE;
 
-EXPORT typedef struct TFTP_Option
+typedef struct TFTP_Option
 {
 	std::string Option = "";
-	_SIZE_T Length = 0;
+	_SIZET Length = 0;
 	char Value[256];
 
 	TFTP_Option()
@@ -156,7 +168,7 @@ EXPORT typedef struct TFTP_Option
 		ClearBuffer(Value, (value.size() + 1));
 
 		Option = opt;
-		Length = static_cast<_SIZE_T>(value.size());
+		Length = static_cast<_SIZET>(value.size());
 		memcpy(&Value, value.c_str(), value.size());
 	}
 
@@ -168,7 +180,7 @@ EXPORT typedef struct TFTP_Option
 		Length = 0;
 	}
 
-	TFTP_Option(const std::string& opt, _SIZE_T length, const unsigned short value)
+	TFTP_Option(const std::string& opt, _SIZET length, const unsigned short value)
 	{
 		ClearBuffer(Value, 2);
 		Option = opt;
@@ -181,7 +193,7 @@ EXPORT typedef struct TFTP_Option
 	}
 } TFTP_Option;
 
-EXPORT typedef struct DHCP_Option
+typedef struct DHCP_Option
 {
 	EXPORT DHCP_Option()
 	{
@@ -289,13 +301,13 @@ EXPORT typedef struct DHCP_Option
 	char Value[1024];
 } DHCP_Option;
 
-EXPORT typedef struct BootServerEntry
+typedef struct BootServerEntry
 {
 	std::vector<_IPADDR> Addresses;
 	std::string Description;
 	std::string Bootfile;
 
-	unsigned short Ident;
+	unsigned short Ident = 0;
 
 	BootServerEntry() {}
 	BootServerEntry(const unsigned short id, const std::string& desc, std::vector<_IPADDR>& adresses,
@@ -313,11 +325,11 @@ EXPORT typedef struct BootServerEntry
 
 } BootServerEntry;
 
-EXPORT typedef struct BootMenuEntry
+typedef struct BootMenuEntry
 {
 	BootServerType Type = PXEBootstrapServer;
 	std::string Description;
-	unsigned short Ident;
+	unsigned short Ident = 0;
 	unsigned char DescLength = 0;
 	_IPADDR Address = 0;
 
@@ -351,7 +363,7 @@ EXPORT typedef struct BootMenuEntry
 	}
 } BootMenuEntry;
 
-EXPORT typedef enum DHCP_OPCODE
+typedef enum DHCP_OPCODE
 {
 	BOOTREQUEST = 0x01,
 	BOOTREPLY = 0x02,
@@ -359,13 +371,13 @@ EXPORT typedef enum DHCP_OPCODE
 	BINL_REPLY = 0x82
 } DHCP_OPCODE;
 
-EXPORT typedef enum BINL_OPCODE
+typedef enum BINL_OPCODE
 {
 
 
 } BINL_OPCODE;
 
-EXPORT typedef enum DHCP_MSGTYPE
+typedef enum DHCP_MSGTYPE
 {
 	DISCOVER = 0x01,
 	OFFER = 0x02,
@@ -375,7 +387,7 @@ EXPORT typedef enum DHCP_MSGTYPE
 	INFORM = 0x08
 } DHCP_MSGTYPE;
 
-EXPORT typedef enum DHCP_VENDOR
+typedef enum DHCP_VENDOR
 {
 	UNKNOWNNO = 0,
 	PXEClient = 1,
@@ -383,7 +395,7 @@ EXPORT typedef enum DHCP_VENDOR
 	APPLEBSDP = 3
 } DHCP_VENDOR;
 
-EXPORT typedef enum DHCP_ARCH
+typedef enum DHCP_ARCH
 {
 	INTEL_X86 = 0x00,
 	NEC_PC98 = 0x01,
@@ -397,7 +409,7 @@ EXPORT typedef enum DHCP_ARCH
 	EFI_X86X64 = 0x09
 } DHCP_ARCH;
 
-EXPORT typedef enum EtherBootOption // iPXE, gPXE
+typedef enum EtherBootOption // iPXE, gPXE
 {
 	Priority = 0x01,
 	KeepSan = 0x08,
@@ -411,13 +423,13 @@ EXPORT typedef enum EtherBootOption // iPXE, gPXE
 	Version = 0xEB
 } EtherBootOption;
 
-EXPORT typedef enum DHCP_FLAGS
+typedef enum DHCP_FLAGS
 {
 	Unicast = 0,
 	Broadcast = 128
 } DHCP_FLAGS;
 
-EXPORT typedef enum DHCP_HARDWARETYPE
+typedef enum DHCP_HARDWARETYPE
 {
 	Ethernet = 0x01,
 	Exp_Ethernet = 0x02,
@@ -428,7 +440,7 @@ EXPORT typedef enum DHCP_HARDWARETYPE
 	ARCNET = 0x07
 } DHCP_HARDWARETYPE;
 
-EXPORT typedef enum CLIENTSTATE
+typedef enum CLIENTSTATE
 {
 	DHCP_INIT = 0,
 	DHCP_WAITING = 1,
@@ -440,7 +452,7 @@ EXPORT typedef enum CLIENTSTATE
 	TFTP_DONE = 7
 } CLIENTSTATE;
 
-EXPORT typedef enum WDSNBP_Options
+typedef enum WDSNBP_Options
 {
 	WDSBP_OPT_ARCHITECTURE = 1,
 	WDSBP_OPT_NEXT_ACTION = 2,
@@ -460,7 +472,7 @@ EXPORT typedef enum WDSNBP_Options
 	WDSBP_OPT_END = 0xff
 } WDSNBP_Options;
 
-EXPORT typedef enum RBCP_Options
+typedef enum RBCP_Options
 {
 	PXE_MTFTP_IP_ADDR = 1,
 	PXE_MTFTP_CLIENT_PORT = 2,
@@ -492,14 +504,14 @@ EXPORT typedef enum RBCP_Options
 	PXE_LCM_SERIALNO = 194,
 } RBCP_Options;
 
-EXPORT typedef enum WDSNBP_OPTION_NEXTACTION
+typedef enum WDSNBP_OPTION_NEXTACTION
 {
 	APPROVAL = 0x01,
 	REFERRAL = 0x03,
 	ABORT = 0x05
 } WDSNBP_OPTION_NEXTACTION;
 
-EXPORT typedef enum ServiceType
+typedef enum ServiceType
 {
 	DHCP_SERVER = 0,
 	BOOTP_SERVER = 2,
@@ -510,7 +522,7 @@ EXPORT typedef enum ServiceType
 	BINL_SERVER = 8
 } ServiceType;
 
-EXPORT typedef struct RBCP
+typedef struct RBCP
 {
 	RBCP()
 	{
@@ -586,7 +598,7 @@ static struct SETTINGS
 	unsigned char MAX_HOPS = 4;
 } SETTINGS;
 
-EXPORT typedef struct WDS
+typedef struct WDS
 {
 	WDS()
 	{
@@ -705,7 +717,7 @@ private:
 	bool* ServerSelection;
 } WDS;
 
-EXPORT typedef struct DHCP_CLIENT
+typedef struct DHCP_CLIENT
 {
 	EXPORT DHCP_CLIENT()
 	{
@@ -886,7 +898,7 @@ private:
 } DHCP_CLIENT;
 
 
-EXPORT typedef struct TFTP_CLIENT
+typedef struct TFTP_CLIENT
 {
 	void SetTFTPState(unsigned char state)
 	{
@@ -1015,7 +1027,7 @@ private:
 } TFTP_CLIENT;
 
 
-EXPORT typedef enum NTLMSSP_FLAGS
+typedef enum NTLMSSP_FLAGS
 {
 	NEG_UNICOE	= 0x00000001,
 	NEG_OEM		= 0x00000002,
@@ -1035,14 +1047,14 @@ EXPORT typedef enum NTLMSSP_FLAGS
 	NEG_56BIT	= 0x80000000
 } NTLMSSP_FLAGS;
 
-EXPORT typedef enum NTLMSSP_MESSAGETYPE
+typedef enum NTLMSSP_MESSAGETYPE
 {
 	NTLM_NEGOTIATE		= 0x01000000,
 	NTLM_CHALLENGE		= 0x02000000,
 	NTLM_AUTHENTICATE	= 0x03000000
 } NTLMSSP_MESSAGETYPE;
 
-EXPORT typedef enum NTLMSSP_TARGETINFO_TYPE
+typedef enum NTLMSSP_TARGETINFO_TYPE
 {
 	END			= 0x0000,
 	NBServer	= 0x0100,
@@ -1052,14 +1064,14 @@ EXPORT typedef enum NTLMSSP_TARGETINFO_TYPE
 	TopDNSDom	= 0x0500
 } NTLMSSP_TARGETINFO_TYPE;
 
-EXPORT typedef struct NTLMSSP_TARGETINFO_ENTRY
+typedef struct NTLMSSP_TARGETINFO_ENTRY
 {
 private:
 	NTLMSSP_TARGETINFO_TYPE	Type;
 	unsigned short	Length;
 	const char* Data = nullptr;
 public:
-	NTLMSSP_TARGETINFO_ENTRY(const NTLMSSP_TARGETINFO_TYPE& type, const char* data, const _SIZE_T length)
+	NTLMSSP_TARGETINFO_ENTRY(const NTLMSSP_TARGETINFO_TYPE& type, const char* data, const _SIZET length)
 	{
 		ClearBuffer(this, sizeof *this);
 		this->Length = static_cast<unsigned short>(length);
@@ -1072,17 +1084,19 @@ public:
 
 	NTLMSSP_TARGETINFO_ENTRY()
 	{
+		this->Type = NTLMSSP_TARGETINFO_TYPE::END;
+		this->Length = 0;
 		delete[] Data;
 	}
 
 } NTLMSSP_TARGETINFO_ENTRY;
 
-EXPORT typedef struct NTLMSSP_SECBUFFER
+typedef struct NTLMSSP_SECBUFFER
 {
 private:
 	unsigned short	Length;
 	unsigned short	AllocatedSpace;
-	_SIZE_T	Position;
+	_SIZET	Position;
 public:
 	NTLMSSP_SECBUFFER()
 	{
@@ -1094,7 +1108,7 @@ public:
 		ClearBuffer(this, sizeof *this);
 	};
 
-	void Set_Length(const _SIZE_T length)
+	void Set_Length(const _SIZET length)
 	{
 		this->Length = static_cast<unsigned short>(length);
 		this->AllocatedSpace = this->Length;
@@ -1105,16 +1119,16 @@ public:
 		return this->Length;
 	}
 
-	void Set_Position(const _SIZE_T position)
+	void Set_Position(const _SIZET position)
 	{
 		this->Position = position;
 	}
 } NTLMSSP_SECBUFFER; /* 8 Byte */
 
-EXPORT typedef struct NTLMSSP_MESSAGE
+typedef struct NTLMSSP_MESSAGE
 {
 private:
-	char				header[8];
+	char				header[9];
 	NTLMSSP_MESSAGETYPE	msgtype;
 	NTLMSSP_SECBUFFER	targetName;
 	NTLMSSP_FLAGS		flags;
@@ -1123,11 +1137,11 @@ private:
 	NTLMSSP_SECBUFFER	targetInfo; /* 40 */
 	char				targetNameData[64]; /* 48 */
 
-	_SIZE_T AS_UTF16LE(const char* src, char* dest, size_t offset)
+	_SIZET AS_UTF16LE(const char* src, char* dest, size_t offset)
 	{
-		_SIZE_T ulen = 0, i = 0;
+		_SIZET ulen = 0, i = 0;
 
-		for (i = 0; i < static_cast<_SIZE_T>(strlen(src)); i++)
+		for (i = 0; i < static_cast<_SIZET>(strlen(src)); i++)
 		{
 			dest[offset + ulen] = src[i];
 			ulen += 2;
@@ -1141,7 +1155,7 @@ public:
 	NTLMSSP_MESSAGE()
 	{
 		ClearBuffer(this, sizeof *this);
-		sprintf(header, "NTLMSSP\0");
+		sprintf(header, "NTLMSSP");
 	}
 
 	~NTLMSSP_MESSAGE()

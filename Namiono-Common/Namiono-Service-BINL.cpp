@@ -1,4 +1,4 @@
-#include "Namiono-Service-BINL.h"
+#include <Namiono-Service-BINL.h>
 
 
 
@@ -13,19 +13,18 @@ Namiono_Service_BINL::~Namiono_Service_BINL()
 
 void Namiono_Service_BINL::Handle_BINL_NEG(Server* server, const std::string& ident, Client* client, Packet* packet)
 {
-	printf("NOT IMPLEMENTED! (SO FAR....)\n");
 }
 
 void Namiono_Service_BINL::Handle_BINL_RQU(Server* server, const std::string& ident, Client* client, Packet* packet)
 {
-	if (packet->Get_Buffer()[36] == 0xa)
+	if (packet->Get_Buffer()[36] == 0x0a)
 	{
 		std::string welcome = "<OSCML><META KEY=\"F3\" ACTION=\"REBOOT\"><META KEY=\"ENTER\" HREF=\"LOGIN\"> \
 		<TITLE>Client Installation Wizard</TITLE><FOOTER>[F3] restart computer [ENTER] Continue</FOOTER> \
 		<BODY left=5 right=75><BR>Welcome to the Client Installation Wizard,<BR>To Install a Operating \
 		System Press [Enter]<BR><BR>To abort and restart the Computer press [F3].</BODY></OSCML>";
 
-		Packet* response = new Packet(static_cast<_SIZE_T>(welcome.size() + 36), BINL_RSU);
+		Packet* response = new Packet(static_cast<_SIZET>(welcome.size() + 36), BINL_RSU);
 		memcpy(&response->Get_Buffer()[8], &packet->Get_Buffer()[8], 28);
 		memcpy(&response->Get_Buffer()[36], welcome.c_str(), welcome.size());
 		response->Commit();
@@ -52,7 +51,7 @@ void Namiono_Service_BINL::Handle_BINL_RQU(Server* server, const std::string& id
 			return;
 		
 		fseek(fil, 0, SEEK_END);
-		_SIZE_T length = ftell(fil);
+		_SIZET length = ftell(fil);
 		rewind(fil);
 
 		fread(tmp, 1, length, fil);
@@ -63,7 +62,7 @@ void Namiono_Service_BINL::Handle_BINL_RQU(Server* server, const std::string& id
 		oscContent = Functions::Replace(oscContent, "%SERVERDOMAIN%", "fblipke.de");
 		oscContent = Functions::Replace(oscContent, "%MACHINENAME%", "Client01");
 
-		Packet* response = new Packet(static_cast<_SIZE_T>(oscContent.size() + 36), BINL_RSU);
+		Packet* response = new Packet(static_cast<_SIZET>(oscContent.size() + 36), BINL_RSU);
 		memcpy(&response->Get_Buffer()[8], &packet->Get_Buffer()[8], 28);
 		memcpy(&response->Get_Buffer()[36], oscContent.c_str(), oscContent.size());
 		response->Commit();
@@ -79,7 +78,7 @@ void Namiono_Service_BINL::Handle_Service_Request(Server * server, const std::st
 	BINL_OPCODE msgtype;
 
 	memcpy(&msgtype, &packet->Get_Buffer()[0], sizeof msgtype);
-	printf("Packet Length: %d\n", packet->get_Length());
+	printf("Packet Length: %ld\n", packet->get_Length());
 	switch (BS32(msgtype))
 	{
 	case BINL_RQU:
