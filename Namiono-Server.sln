@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.421
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Namiono-Server", "Namiono-Server.vcxproj", "{464132A1-076C-47B4-8469-9564FD649183}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{464132A1-076C-47B4-8469-9564FD649183}.Debug|x64.ActiveCfg = Debug|x64
+		{464132A1-076C-47B4-8469-9564FD649183}.Debug|x64.Build.0 = Debug|x64
+		{464132A1-076C-47B4-8469-9564FD649183}.Debug|x86.ActiveCfg = Debug|Win32
+		{464132A1-076C-47B4-8469-9564FD649183}.Debug|x86.Build.0 = Debug|Win32
+		{464132A1-076C-47B4-8469-9564FD649183}.Release|x64.ActiveCfg = Release|x64
+		{464132A1-076C-47B4-8469-9564FD649183}.Release|x64.Build.0 = Release|x64
+		{464132A1-076C-47B4-8469-9564FD649183}.Release|x86.ActiveCfg = Release|Win32
+		{464132A1-076C-47B4-8469-9564FD649183}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {17ED9E3B-18B6-49CA-9252-4C293FC17301}
+	EndGlobalSection
+EndGlobal
