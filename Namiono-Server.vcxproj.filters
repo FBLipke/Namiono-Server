@@ -45,6 +45,15 @@
     <ClInclude Include="Environment\environment_windows.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="Environment\Settings.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Namiono\Filesystem.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Namiono\Network\Server\IfaceInfo.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Namiono\Network\Packet\Packet.cpp">
@@ -65,17 +74,35 @@
     <ClCompile Include="Environment\environment.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="Namiono\Filesystem.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="CppProperties.json" />
-    <None Include="TFTP_Root\Boot\bstrap.0" />
-    <None Include="TFTP_Root\Boot\bisconfig.0" />
-    <None Include="TFTP_Root\Boot\apitest.0" />
-    <None Include="TFTP_Root\Boot\x64\default.bcd" />
-    <None Include="TFTP_Root\Boot\x86\default.bcd" />
-    <None Include="TFTP_Root\Boot\x86\wdsnbp.com" />
     <None Include="TFTP_Root\Boot\x64\wdsnbp.com" />
-    <None Include="TFTP_Root\Boot\x64\wdsmgfw.efi" />
+    <None Include="TFTP_Root\Boot\x64\default.bcd" />
+    <None Include="TFTP_Root\Boot\x64\bootmgfw.efi" />
+    <None Include="TFTP_Root\Boot\x64\bootmgr.exe" />
     <None Include="TFTP_Root\Boot\x64\pxeboot.n12" />
+    <None Include="TFTP_Root\Boot\x64\wdsmgfw.efi" />
+    <None Include="TFTP_Root\Boot\x64\boot.sdi" />
+    <None Include="TFTP_Root\Boot\x86\default.bcd" />
+    <None Include="TFTP_Root\Boot\x86\ntldr" />
+    <None Include="TFTP_Root\Boot\x86\setupldr.exe" />
+    <None Include="TFTP_Root\Boot\x86\startrom.n12" />
+    <None Include="TFTP_Root\Boot\x86\wdsnbp.com" />
+    <None Include="TFTP_Root\Boot\apitest.0" />
+    <None Include="TFTP_Root\Boot\bisconfig.0" />
+    <None Include="TFTP_Root\Boot\bstrap.0" />
+    <None Include="TFTP_Root\Boot\x86\pxeboot.n12" />
+    <None Include="TFTP_Root\OSChooser\English\welcome.osc" />
+    <None Include="Makefile" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="TFTP_Root\Boot\x64\Fonts\wgl4_boot.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Config\servers.txt" />
+    <Text Include="Config\config.txt" />
   </ItemGroup>
 </Project>

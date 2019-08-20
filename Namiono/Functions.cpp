@@ -1,3 +1,16 @@
+/*
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <Namiono/Namiono.h>
 
 std::string Functions::AddressStr(const _IPADDR ip, const int family)
@@ -14,12 +27,15 @@ std::string Functions::AddressStr(const _IPADDR ip, const int family)
 	return std::string(_addr);
 }
 
-std::string Functions::AsString(const _SIZET input)
+_USHORT Functions::AsUSHORT(const char* input)
 {
-	std::stringstream ss;
-	ss << input;
+	// packet->Get_TFTPOption("blksize").Value;
+	return static_cast<_USHORT>(strtoul(input, nullptr, 0));
+}
 
-	return ss.str();
+_INT32 Functions::RoundToInteger(double value)
+{
+	return _INT32(static_cast<_INT32>(round(value + 0.5)));
 }
 
 bool Functions::FileExist(const char* Filename)
@@ -38,7 +54,6 @@ std::vector<std::string> Functions::Split(const std::string& str, const std::str
 {
 	std::string tmp = str;
 	std::vector<std::string> result;
-
 	while (tmp.size())
 	{
 		_SIZET index = tmp.find(token);
@@ -61,7 +76,7 @@ std::vector<std::string> Functions::Split(const std::string& str, const std::str
 }
 
 /*
- *C ompare Memory or Strings...
+ * Compare Memory or Strings...
 */
 bool Functions::Compare(const char* p1, const char* p2, const _SIZET length)
 {
@@ -81,6 +96,20 @@ std::string Functions::Replace(std::string& str, const std::string& from, const 
 	}
 
 	return str;
+}
+
+bool Functions::CompareIPAddress(const _IPADDR& ip1, const _IPADDR& ip2, const _SIZET length)
+{
+	return memcmp(&ip1, &ip2, length) == 0;
+}
+
+
+std::string Functions::AsString(const _SIZET input)
+{
+	std::stringstream ss;
+	ss << input;
+
+	return ss.str();
 }
 
 void Functions::ExtractString(const char* buf, const size_t& size, char* out)

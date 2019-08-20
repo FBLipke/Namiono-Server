@@ -1,3 +1,16 @@
+/*
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #pragma once
 #include <Environment/environment.h>
 
@@ -65,11 +78,11 @@ typedef enum Packet_OPCode
 	BINL_RQU = 0x81525155,
 	BINL_NEG = 0x814e4547,
 	BINL_CHA = 0x8243484c,
-	BINL_RSU = 0x82525355
+	BINL_RSU = 0x82525355,
+	PACKET_UNKNOWN = 0xffffffff
+
 
 } Packet_OPCode;
-
-
 
 typedef enum TFTP_OPCODE
 {
@@ -151,7 +164,7 @@ typedef struct TFTP_Option
 		memcpy(&Value, value.c_str(), value.size());
 	}
 
-	TFTP_Option(const _BYTE opt)
+	TFTP_Option(const _BYTE& opt)
 	{
 		ClearBuffer(Value, 1);
 
@@ -189,7 +202,7 @@ typedef struct DHCP_Option
 		Option = opt;
 		Length = length;
 
-		ClearBuffer(&Value, Length + (_BYTE)1);
+		ClearBuffer(&Value, Length + static_cast<_BYTE>(1));
 
 		if (length != 0)
 			memcpy(&Value, value, Length);
@@ -227,7 +240,6 @@ typedef struct DHCP_Option
 		if (Length != 0)
 			memcpy(&Value, &value, Length);
 	}
-
 	DHCP_Option(const _BYTE& opt, const _UINT& value)
 	{
 		Option = opt;
@@ -239,7 +251,7 @@ typedef struct DHCP_Option
 			memcpy(&Value, &value, Length);
 	}
 
-	DHCP_Option(const _BYTE& opt, const _IPADDR& value)
+	DHCP_Option(const _BYTE& opt, const _ULONG& value)
 	{
 		Option = opt;
 		Length = 4;
@@ -250,29 +262,29 @@ typedef struct DHCP_Option
 			memcpy(&Value, &value, Length);
 	}
 
-
 	DHCP_Option(const _BYTE& opt, const std::vector<DHCP_Option>& value)
 	{
 		Option = opt;
 		Length = 0;
 		int offset = 0;
 
-		// Get the entire options length!
-		for (const auto & option : value)
-			Length += option.Length + 2;
+		// Get the entire option length!
+
+		for (_SIZET i = 0; i < value.size(); i++)
+			Length += value.at(i).Length + 2;
 
 		ClearBuffer(&Value, Length + 1);
 
-		for (const auto & option : value)
+		for (_SIZET i = 0; i < value.size(); i++)
 		{
-			memcpy(&Value[offset], &option.Option, 1);
+			memcpy(&Value[offset], &value.at(i).Option, 1);
 			offset += 1;
 
-			memcpy(&Value[offset], &option.Length, 1);
+			memcpy(&Value[offset], &value.at(i).Length, 1);
 			offset += 1;
 
-			memcpy(&Value[offset], &option.Value, option.Length);
-			offset += option.Length;
+			memcpy(&Value[offset], &value.at(i).Value, value.at(i).Length);
+			offset += value.at(i).Length;
 		}
 
 		Length = offset;
@@ -285,13 +297,12 @@ typedef struct DHCP_Option
 		ClearBuffer(&Value, Length + 1);
 	}
 
-	std::string Get_Value_As_String()
+	std::string Get_Value_As_String() const
 	{
-		
 		return std::string(this->Value);
 	}
 
-	_BYTE Get_Value_As_Byte()
+	_BYTE Get_Value_As_Byte() const
 	{
 		return static_cast<_BYTE>(this->Value[0]);
 	}
@@ -317,7 +328,7 @@ typedef struct DHCP_Option
 		for (_SIZET i = 0; i < Length; i++)
 		{
 			if (static_cast<_BYTE>(Value[i]) == static_cast<_BYTE>(0xff) ||
-				static_cast<_BYTE>(Value[i]) == 0x00)
+				static_cast<_BYTE>(Value[i]) == static_cast<_BYTE>(0x00))
 				break;
 
 			suboptionList.emplace_back(static_cast<_BYTE>(Value[i]),
@@ -345,7 +356,7 @@ typedef struct BootServerEntry
 		ClearBuffer(this, sizeof(*this));
 	}
 
-	BootServerEntry(const _USHORT id, const std::string& desc, std::vector<_IPADDR>& adresses,
+	BootServerEntry(const _USHORT& id, const std::string& desc, const std::vector<_IPADDR>& adresses,
 		const std::string& filename = "")
 	{
 		Ident = id;
@@ -368,7 +379,7 @@ typedef struct BootMenuEntry
 	_BYTE DescLength = 0;
 	_IPADDR Address = 0;
 
-	BootMenuEntry(const _USHORT id, const std::string& text,
+	BootMenuEntry(const _USHORT& id, const std::string& text,
 		const BootServerType type = PXEBootstrapServer)
 	{
 		Ident = id;
@@ -377,7 +388,7 @@ typedef struct BootMenuEntry
 		DescLength = static_cast<_BYTE>(Description.size());
 	}
 
-	BootMenuEntry(const _USHORT id, const std::string& text, const _IPADDR address,
+	BootMenuEntry(const _USHORT& id, const std::string& text, const _IPADDR& address,
 		const BootServerType type = PXEBootstrapServer)
 	{
 		Ident = id;
@@ -394,7 +405,7 @@ typedef struct BootMenuEntry
 
 	BootMenuEntry()
 	{
-		ClearBuffer(this, sizeof(*this));
+		ClearBuffer(this, sizeof *this);
 	}
 } BootMenuEntry;
 
@@ -431,21 +442,21 @@ typedef enum DHCP_VENDOR
 	UNKNOWNNO = 0x00,
 	PXEClient = 0x01,
 	PXEServer = 0x02,
-	APPLEBSDP = 0x03
+	AAPLBSDPC = 0x03
 } DHCP_VENDOR;
 
 typedef enum DHCP_ARCH
 {
-	INTEL_X86 = 0x00,
-	NEC_PC98 = 0x01,
-	EFI_ITAN = 0x02,
-	DEC_ALPHA = 0x03,
-	ARC_X86 = 0x04,
-	INTEL_LEAN = 0x05,
-	INTEL_IA32X64 = 0x06,
-	EFI_BC = 0x07,
-	EFI_XSCALE = 0x08,
-	EFI_X86X64 = 0x09
+	INTEL_X86 = 0x0000,
+	NEC_PC98 = 0x0001,
+	EFI_ITAN = 0x0002,
+	DEC_ALPHA = 0x0003,
+	ARC_X86 = 0x0004,
+	INTEL_LEAN = 0x0005,
+	INTEL_IA32X64 = 0x0006,
+	EFI_BC = 0x0007,
+	EFI_XSCALE = 0x0008,
+	EFI_X86X64 = 0x0009
 } DHCP_ARCH;
 
 typedef enum DHCP_FLAGS
@@ -471,11 +482,18 @@ typedef enum CLIENTSTATE
 	DHCP_WAITING = 1,
 	DHCP_DONE = 2,
 	DHCP_ABORT = 3,
-	TFTP_INIT = 4,
-	TFTP_DOWNLOAD = 5,
-	TFTP_ERROR = 6,
-	TFTP_DONE = 7
+	DHCP_RELAY = 4,
+	TFTP_INIT = 5,
+	TFTP_DOWNLOAD = 6,
+	TFTP_ERROR = 7,
+	TFTP_DONE = 8
 } CLIENTSTATE;
+
+typedef enum WDSNBP_ActionDone_Values
+{
+	False = 0,
+	True = 1
+} WDSNBP_NEXTACTION_Values;
 
 typedef enum WDSNBP_Options
 {
@@ -509,9 +527,21 @@ typedef enum BSDP_Options
 	BSDP_SelectedImageID = 0x08,
 	BSDP_ImageList = 0x09,
 	BSDP_LEGACY = 0x10, // Handle as 255
-	BSDP_Attributes = 0x11
+	BSDP_Attributes = 0x11,
+	BSDP_ShadowPath = 0x80,
+	BSDP_ShadowFile = 0x81,
+	BSDP_MACHINENAME = 0x82
 
-}BSDP_Options;
+} BSDP_Options;
+
+typedef enum BSDP_ATTIBUTE
+{
+	None = 0x0000,
+	Install = 0x8100,
+	NoInstall = 0x0100,
+	Diagnostic = 0x0300
+} BSDP_ATTIBUTE;
+
 
 typedef enum BSDP_MSGTYPE
 {
@@ -586,7 +616,10 @@ typedef struct IPXE
 	~IPXE()
 	{
 		delete this->username;
+		this->username = nullptr;
+
 		delete this->password;
+		this->password = nullptr;
 	}
 
 	void Set_Username(const std::string& username)
@@ -599,19 +632,115 @@ typedef struct IPXE
 		*this->password = password;
 	}
 
-	std::string Get_Username()
+	const std::string& Get_Username() const
 	{
 		return *this->username;
 	}
 
-	std::string Get_Password()
+	const std::string& Get_Password() const
 	{
 		return *this->password;
 	}
 private:
-	std::string* username;
-	std::string* password;
+	std::string* username = nullptr;
+	std::string* password = nullptr;
 } IPXE;
+
+typedef struct BSDP
+{
+	BSDP()
+	{
+		this->MSGTYPE = new BSDP_MSGTYPE(LIST);
+		this->Priority = new _USHORT(0x0a);
+		this->BootImage = new _UINT(1);
+		this->SelectedImage = new _UINT(1);
+		this->attributes = new BSDP_ATTIBUTE(Install);
+		this->ServerIdent = new _IPADDR(0);
+		this->ReplyPort = new _USHORT(0);
+	}
+
+	~BSDP()
+	{
+		delete this->attributes;
+		this->attributes = nullptr;
+
+		delete this->BootImage;
+		this->BootImage = nullptr;
+
+		delete this->Priority;
+		this->Priority = nullptr;
+
+		delete this->MSGTYPE;
+		this->MSGTYPE = nullptr;
+
+		delete this->ServerIdent;
+		this->ServerIdent = nullptr;
+
+		delete this->ReplyPort;
+		this->ReplyPort = nullptr;
+	}
+
+	void Set_ServerIdent(const _IPADDR& ident)
+	{
+		*this->ServerIdent = ident;
+	}
+
+	void Set_BootImage(const _UINT& id)
+	{
+		*this->BootImage = id;
+	}
+
+	_UINT Get_BootImage() const
+	{
+		return *this->BootImage;
+	}
+
+	void Set_SelectedImage(const _UINT& id)
+	{
+		*this->SelectedImage = id;
+	}
+
+	_UINT Get_SelectedImage() const
+	{
+		return *this->SelectedImage;
+	}
+
+	bool Get_ServerIdent() const
+	{
+		return *this->ServerIdent;
+	}
+
+	void Set_ReplyPort(const _USHORT& port)
+	{
+		*this->ReplyPort = port;
+	}
+
+	_USHORT Get_ReplyPort() const
+	{
+		return *this->ReplyPort;
+	}
+
+	void Set_Attributes(const BSDP_ATTIBUTE& attribs)
+	{
+		*this->attributes = attribs;
+	}
+
+	BSDP_ATTIBUTE Get_Attributes() const
+	{
+		return *this->attributes;
+	}
+
+private:
+	BSDP_MSGTYPE* MSGTYPE = nullptr;
+	BSDP_VERSION* Version = nullptr;
+	BSDP_ATTIBUTE* attributes = nullptr;
+	_IPADDR* ServerIdent = nullptr;
+	_USHORT* Priority = nullptr;
+	_UINT* BootImage = nullptr;
+	_UINT* SelectedImage = nullptr;
+	_USHORT* ReplyPort = nullptr;
+
+} BSDP;
 
 typedef struct RBCP
 {
@@ -619,6 +748,7 @@ typedef struct RBCP
 	{
 		this->item = new _USHORT(0);
 		this->layer = new RBCP_LAYER(RBCP_LAYER::Bootfile);
+		this->bootServers = new std::vector<BootServerEntry>();
 
 		this->mcastip = new _IPADDR(0);
 		this->control = new RBCP_DISCOVERYCONTROL(DISABLE_MCAST);
@@ -627,9 +757,23 @@ typedef struct RBCP
 	~RBCP()
 	{
 		delete this->item;
+		this->item = nullptr;
+
 		delete this->layer;
+		this->layer = nullptr;
+		
 		delete this->control;
+		this->control = nullptr;
+
 		delete this->mcastip;
+		this->mcastip = nullptr;
+
+		if (this->bootServers != nullptr)
+			this->bootServers->clear();
+
+		delete this->bootServers;
+		this->bootServers = nullptr;
+
 	};
 
 	void Set_Item(const _USHORT& item)
@@ -637,7 +781,7 @@ typedef struct RBCP
 		*this->item = item;
 	}
 
-	_USHORT Get_Item()
+	const _USHORT& Get_Item() const
 	{
 		return *this->item;
 	}
@@ -647,7 +791,7 @@ typedef struct RBCP
 		*this->layer = layer;
 	}
 
-	RBCP_LAYER Get_Layer()
+	const RBCP_LAYER& Get_Layer() const
 	{
 		return *this->layer;
 	}
@@ -657,13 +801,55 @@ typedef struct RBCP
 		*this->mcastip = ip;
 	}
 
-	_IPADDR Get_MulticastIP()
+	const _IPADDR& Get_MulticastIP() const 
 	{
 		return *this->mcastip;
 	}
+
+	std::vector<BootServerEntry>* Get_Bootservers() const
+	{
+		return this->bootServers;
+	}
+
+	void Clear_BootServers()
+	{
+		this->bootServers->clear();
+	}
+
+	bool Has_BootServer(const _USHORT& id) const
+	{
+		if (this->bootServers->size() == 0 || this->bootServers->size() < id)
+			return false;
+
+		BootServerEntry* entry = &this->bootServers->at(id);
+
+		return entry != nullptr;
+	}
+
+	void Add_BootServer(const std::string& name, const std::vector <_IPADDR>& addresses)
+	{
+		_USHORT id = static_cast<_USHORT>(bootServers->size() + 1);
+
+		if (addresses.size() == 0)
+		{
+			printf("[E] Passed Bootserver has no addresses!\n");
+		}
+		else
+		{
+			if (Has_BootServer(id))
+				return;
+			
+			printf("[D] Bootserver ( %s ) added!\n", name.c_str());
+			
+			bootServers->emplace_back(BootServerEntry(id, name, addresses, ""));
+		}
+	}
+
 private:
 	_USHORT* item = nullptr;
 	RBCP_LAYER* layer = nullptr;
+
+	std::vector<BootServerEntry>* bootServers = nullptr;
 
 	_IPADDR* mcastip = nullptr;
 	RBCP_DISCOVERYCONTROL* control = nullptr;
@@ -672,14 +858,15 @@ private:
 static struct SETTINGS
 {
 	bool MULTICAST_SUPPORT = false;
-	_BYTE DISCOVERY_MODE = UNICAST_ONLY;
+	_BYTE DISCOVERY_MODE = RBCP_DISCOVERYCONTROL::UNICAST_ONLY;
 	_BYTE PXEBOOTMENUE = 1;
 	_BYTE PXEPROMPTTIMEOUT = 255;
-	_BYTE SUBNETDELAY = 1;
+	_BYTE SUBNETDELAY = 2;
 	_BYTE PXE_MTFTP_TIMEOUT = 1;
 	_BYTE PXE_MTFTP_DELAY = 10;
 
 	std::string PXEPROMP = "Press [F8] to boot from network...";
+	std::string PXEHDDDESC = "Boot from Harddisk";
 	std::string DISCOVERY_ADDR = "224.0.1.2";
 	
 	std::string NBDOMAIN = "FBLIPKE";
@@ -690,6 +877,11 @@ static struct SETTINGS
 
 	_ULONG SERVER_UPDATE_DELAY = 60;
 	_BYTE MAX_HOPS = 4;
+
+	bool SOCKET_BROADCAST = 1;
+	bool SOCKET_REUSEADDR = 1;
+	bool SOCKET_REUSEPORT = 1;
+
 } SETTINGS;
 
 typedef struct WDS
@@ -697,164 +889,219 @@ typedef struct WDS
 	WDS()
 	{
 		this->NextAction = new _BYTE(WDSNBP_OPTION_NEXTACTION::APPROVAL);
-		this->ActionDone = new _BYTE(1);
+		this->ActionDone = new WDSNBP_ActionDone_Values(WDSNBP_ActionDone_Values::False);
 		this->PollIntervall = new _USHORT(SETTINGS.PXE_MTFTP_DELAY);
 		this->RetryCount = new _USHORT(65535);
 		this->requestid = new _ULONG(1);
 		this->bcdfile = new std::string("");
 		this->referalIP = new _IPADDR(0);
-		this->AdminMessage = new std::string("");
+		this->AdminMessage = new std::string("Namiono-Server 0.5");
 		this->ServerSelection = new bool(0);
 	}
 
 	~WDS()
 	{
 		delete this->NextAction;
+		this->NextAction = nullptr;
+
 		delete this->ActionDone;
+		this->ActionDone = nullptr;
+
 		delete this->PollIntervall;
+		this->PollIntervall = nullptr;
+
 		delete this->RetryCount;
+		this->RetryCount = nullptr;
+
 		delete this->requestid;
+		this->requestid = nullptr;
+
 		delete this->bcdfile;
+		this->bcdfile = nullptr;
+
 		delete this->referalIP;
+		this->referalIP = nullptr;
+
 		delete this->AdminMessage;
+		this->AdminMessage = nullptr;
+
 		delete this->ServerSelection;
+		this->ServerSelection = nullptr;
 	}
 
-	std::string GetBCDfile()
+	std::string& GetBCDfile() const
 	{
 		return *this->bcdfile;
 	}
 
-	void SetReferralServer(_IPADDR addr)
+	void SetReferralServer(const _IPADDR& addr)
 	{
 		*this->referalIP = addr;
 	}
 
-	_IPADDR GetReferalServer()
+	const _IPADDR& GetReferalServer() const
 	{
 		return *this->referalIP;
 	}
 
-	void SetRequestID(_ULONG id)
+	void SetRequestID(const _ULONG& id)
 	{
 		*this->requestid = id;
 	}
 
-	_ULONG GetRequestID()
+	const _ULONG& GetRequestID() const
 	{
 		return *this->requestid;
 	}
 
-	void SetActionDone(const _BYTE& done)
+	void SetActionDone(const WDSNBP_ActionDone_Values& done)
 	{
 		*this->ActionDone = done;
 	}
 
-	_BYTE& GetActionDone()
+	const WDSNBP_ActionDone_Values& GetActionDone() const
 	{
 		return *this->ActionDone;
 	}
 
-	void SetWDSMessage(std::string message)
+	void SetWDSMessage(const std::string& message)
 	{
 		*this->AdminMessage = message;
 	}
 
-	std::string GetWDSMessage()
+	const std::string& GetWDSMessage() const
 	{
 		return *this->AdminMessage;
 	}
 
-	void SetNextAction(WDSNBP_OPTION_NEXTACTION action)
+	void SetNextAction(const WDSNBP_OPTION_NEXTACTION& action)
 	{
 		*this->NextAction = action;
 	}
 
-	_BYTE GetNextAction()
+	const _BYTE& GetNextAction() const
 	{
 		return *this->NextAction;
 	}
 
-	void SetRetryCount(_USHORT action)
+	void SetRetryCount(const _USHORT& action)
 	{
 		*this->RetryCount = action;
 	}
 
-	_USHORT GetRetryCount()
+	const _USHORT& GetRetryCount() const
 	{
 		return *this->RetryCount;
 	}
 
-	void SetPollInterval(_USHORT interval)
+	void SetPollInterval(const _USHORT& interval)
 	{
 		*this->PollIntervall = interval;
 	}
 
-	_USHORT GetPollInterval()
+	const _USHORT& GetPollInterval() const
 	{
 		return *this->PollIntervall;
 	}
 
-	void SetBCDfile(std::string file)
+	void SetBCDfile(const std::string& file)
 	{
 		*this->bcdfile = file;
 	}
 private:
-	_BYTE* NextAction;
-	_BYTE* ActionDone;
-	_USHORT* PollIntervall;
-	_USHORT* RetryCount;
-	_ULONG* requestid;
-	std::string* bcdfile;
-	_IPADDR* referalIP;
-	std::string* AdminMessage;
-	bool* ServerSelection;
+	_BYTE* NextAction = nullptr;
+	WDSNBP_ActionDone_Values* ActionDone = nullptr;
+	_USHORT* PollIntervall = nullptr;
+	_USHORT* RetryCount = nullptr;
+	_ULONG* requestid = nullptr;
+	std::string* bcdfile = nullptr;
+	_IPADDR* referalIP = nullptr;
+	std::string* AdminMessage = nullptr;
+	bool* ServerSelection = nullptr;
 } WDS;
 
 typedef struct DHCP_CLIENT
 {
-	DHCP_CLIENT()
+	DHCP_CLIENT(const std::string& nextIP)
 	{
 		this->wds = new WDS();
 		this->rbcp = new RBCP();
+		this->bsdp = new BSDP();
 		this->ipxe = new IPXE();
 		this->arch = new DHCP_ARCH(INTEL_X86);
 		this->bootfile = new std::string("");
 		this->prefix = new std::string("");
 		this->vendorid = new DHCP_VENDOR(UNKNOWNNO);
-		this->vendorstring = new std::string("PXEClient");
+		this->vendorstring = new std::string("");
 		this->msgtype = new DHCP_MSGTYPE(OFFER);
-		this->NextServer = new _IPADDR(0);
+		this->NextServer = new _IPADDR(inet_addr(nextIP.c_str()));
 		this->isWDSRequest = new bool(false);
 		this->isIPXERequest = new bool(false);
+		this->isBSDPRequest = new bool(true);
 		this->isRelayedPacket = new bool(false);
 		this->state = new CLIENTSTATE(DHCP_INIT);
+		this->vendorOpts = new std::vector<DHCP_Option>();
 	}
 
 	~DHCP_CLIENT()
 	{
 		delete this->wds;
+		this->wds = nullptr;
+
 		delete this->rbcp;
+		this->rbcp = nullptr;
+
 		delete this->ipxe;
+		this->ipxe = nullptr;
+
+		delete this->bsdp;
+		this->bsdp = nullptr;
+
 		delete this->arch;
+		this->arch = nullptr;
+
 		delete this->bootfile;
+		this->bootfile = nullptr;
+		
 		delete this->msgtype;
+		this->msgtype = nullptr;
+
 		delete this->NextServer;
+		this->NextServer = nullptr;
+
 		delete this->isWDSRequest;
+		this->isWDSRequest = nullptr;
+
 		delete this->isIPXERequest;
+		this->isIPXERequest = nullptr;
+
 		delete this->isRelayedPacket;
+		this->isRelayedPacket = nullptr;
+
 		delete this->state;
+		this->state = nullptr;
+
 		delete this->prefix;
+		this->prefix = nullptr;
+
 		delete this->vendorid;
+		this->vendorid = nullptr;
+
 		delete this->vendorstring;
+		this->vendorstring = nullptr;
+
+		this->vendorOpts->clear();
+		delete this->vendorOpts;
+		this->vendorOpts = nullptr;
+
 	}
 
-	void SetNextServer(_IPADDR ip)
+	void SetNextServer(const _IPADDR& ip)
 	{
 		*this->NextServer = ip;
 	}
 
-	_IPADDR GetNextServer()
+	const _IPADDR& GetNextServer() const
 	{
 		return *this->NextServer;
 	}
@@ -864,7 +1111,7 @@ typedef struct DHCP_CLIENT
 		*this->state = state;
 	}
 
-	CLIENTSTATE Get_State()
+	const CLIENTSTATE& Get_State() const
 	{
 		return *this->state;
 	}
@@ -877,17 +1124,20 @@ typedef struct DHCP_CLIENT
 		{
 		case PXEClient:
 			Set_VendorString("PXEClient");
+			SetIsBSDPRequest(false);
 			break;
 		case PXEServer:
 			Set_VendorString("PXEServer");
+			SetIsBSDPRequest(false);
 			break;
-		case APPLEBSDP:
+		case AAPLBSDPC:
 			Set_VendorString("AAPLBSDPC");
+			SetIsBSDPRequest(true);
 			break;
 		}
 	}
 
-	DHCP_VENDOR Get_Vendor()
+	const DHCP_VENDOR& Get_Vendor() const
 	{
 		return *this->vendorid;
 	}
@@ -897,52 +1147,52 @@ typedef struct DHCP_CLIENT
 		*this->vendorstring = vendor;
 	}
 
-	std::string Get_VendorString()
+	const std::string& Get_VendorString() const
 	{
 		return *this->vendorstring;
 	}
 
-	void SetMessageType(DHCP_MSGTYPE type)
+	void SetMessageType(const DHCP_MSGTYPE& type)
 	{
 		*this->msgtype = type;
 	}
 
-	DHCP_MSGTYPE& GetMessageType()
+	const DHCP_MSGTYPE& GetMessageType() const
 	{
 		return *this->msgtype;
 	}
 
-	void SetBootfile(std::string file)
+	void SetBootfile(const std::string& file)
 	{
 		*this->bootfile = file;
 	}
 
-	std::string GetPrefix()
+	const std::string& GetPrefix() const
 	{
 		return *this->bootfile;
 	}
 
-	void SetPrefix(std::string path)
+	void SetPrefix(const std::string& path)
 	{
 		*this->prefix = path;
 	}
 
-	DHCP_ARCH GetArchitecture()
+	const DHCP_ARCH& GetArchitecture() const
 	{
 		return *this->arch;
 	}
 
-	void SetArchitecture(DHCP_ARCH arch)
+	void SetArchitecture(const DHCP_ARCH& arch)
 	{
-		*this->arch = arch;
+		*this->arch = static_cast<DHCP_ARCH>(BS16(arch));
 	}
 
-	bool GetIsWDSRequest()
+	const bool GetIsWDSRequest() const
 	{
 		return *this->isWDSRequest;
 	}
 
-	bool GetIsIPXERequest()
+	const bool GetIsIPXERequest() const
 	{
 		return *this->isIPXERequest;
 	}
@@ -957,7 +1207,17 @@ typedef struct DHCP_CLIENT
 		*this->isWDSRequest = is;
 	}
 
-	bool GetIsRelayedPacket()
+	void SetIsBSDPRequest(bool is)
+	{
+		*this->isBSDPRequest = is;
+	}
+
+	bool GetIsBSDPRequest() const
+	{
+		return *this->isBSDPRequest;
+	}
+
+	const bool GetIsRelayedPacket() const
 	{
 		return *this->isRelayedPacket;
 	}
@@ -967,47 +1227,57 @@ typedef struct DHCP_CLIENT
 		*this->isRelayedPacket = is;
 	}
 
-	std::string GetBootfile()
+	const std::string GetBootfile()
 	{
-		switch (*this->arch)
+		switch (this->GetArchitecture())
 		{
+		default:
 		case INTEL_X86:
 			*this->prefix = "Boot\\x86\\";
+			this->wds->SetBCDfile(*this->prefix + "default.bcd");
 			switch (this->wds->GetNextAction())
 			{
 			case ABORT:
-				*this->bootfile = "Boot\\x86\\abortpxe.com";
+				*this->bootfile = *this->prefix + "abortpxe.com";
 				break;
 			default:
-				*this->bootfile = "Boot\\x86\\pxeboot.n12";
-				this->wds->SetBCDfile("Boot\\x86\\default.bcd");
+				if (this->GetIsWDSRequest())
+				{
+					*this->bootfile = *this->prefix + "pxeboot.n12";
+				}
+				else
+				{
+					*this->bootfile = *this->prefix + "startrom.n12";
+				}
 				break;
 			}
 			break;
 		case INTEL_IA32X64:
 		case EFI_X86X64:
 			*this->prefix = "Boot\\x64\\";
+			this->wds->SetBCDfile(*this->prefix + "default.bcd");
 			switch (this->wds->GetNextAction())
 			{
 			case ABORT:
-				*this->bootfile = "Boot\\x64\\abortpxe.com";
+				*this->bootfile = *this->prefix + "abortpxe.com";
 				this->wds->SetBCDfile("");
 				break;
 			default:
-				*this->bootfile = "Boot\\x64\\pxeboot.n12";
-				this->wds->SetBCDfile("Boot\\x64\\default.bcd");
+				if (this->GetIsWDSRequest())
+				{
+					*this->bootfile = *this->prefix + "pxeboot.n12";
+				}
+				else
+				{
+					*this->bootfile = *this->prefix + "wdsnbp.com";
+				}
 				break;
 			}
 			break;
 		case EFI_BC:
 			*this->prefix = "Boot\\efi\\";
-			*this->bootfile = "bootmgfw.efi";
-			this->wds->SetBCDfile("default.bcd");
-			break;
-		default:
-			*this->prefix = "Boot\\x86\\";
-			*this->bootfile = "Boot\\x86\\wdsnbp.com";
-			this->wds->SetBCDfile("");
+			this->wds->SetBCDfile(*this->prefix + "default.bcd");
+			*this->bootfile = *this->prefix + "bootmgfw.efi";
 			break;
 		}
 
@@ -1016,23 +1286,26 @@ typedef struct DHCP_CLIENT
 
 	WDS* wds = nullptr;
 	RBCP* rbcp = nullptr;
+	BSDP* bsdp = nullptr;
 	IPXE* ipxe = nullptr;
+	std::vector<DHCP_Option>* vendorOpts = nullptr;
 
 private:
 	bool* isWDSRequest = nullptr;
 	bool* isIPXERequest = nullptr;
+	bool* isBSDPRequest = nullptr;
 	bool* isRelayedPacket = nullptr;
 	std::string* bootfile = nullptr;
 	std::string* prefix = nullptr;
 	DHCP_ARCH* arch = nullptr;
 	DHCP_MSGTYPE* msgtype = nullptr;
+	_BYTE* CircuitID = nullptr;
 	_IPADDR* NextServer = nullptr;
 	CLIENTSTATE* state = nullptr;
 	DHCP_VENDOR* vendorid = nullptr;
 	std::string* vendorstring = nullptr;
 
 } DHCP_CLIENT;
-
 
 typedef struct TFTP_CLIENT
 {
@@ -1041,21 +1314,24 @@ typedef struct TFTP_CLIENT
 		*this->tftp_state = state;
 	}
 
-	CLIENTSTATE Get_State()
+	const CLIENTSTATE& Get_State()
 	{
 		return *this->tftp_state;
 	}
 
 	bool OpenFile(const std::string& path)
 	{
+		_SIZET bytes = 0;
+
 		this->filehandle = fopen(path.c_str(), "rb");
 		
-		fseek(this->filehandle, 0, SEEK_END);
+		if (fseek(this->filehandle, 0, SEEK_END) == 0)
+		{
+			bytes = static_cast<_SIZET>(ftell(this->filehandle));
+			rewind(this->filehandle);
 
-		long bytes = ftell(this->filehandle);
-		rewind(this->filehandle);
-
-		this->SetBytesToRead(static_cast<_SIZET>(bytes));
+			this->SetBytesToRead(bytes);
+		}
 
 		return this->GetBytesToRead() != 0;
 	}
@@ -1086,65 +1362,65 @@ typedef struct TFTP_CLIENT
 
 	void SetCurrentBlock()
 	{
-		this->block = this->block + 1;
+		*this->block += 1;
 	}
 
-	void SetCurrentBlock(_USHORT block)
+	void SetCurrentBlock(const _USHORT& block)
 	{
 		*this->block = block;
 	}
 
-	_USHORT GetWindowSize()
+	const _BYTE& GetWindowSize() const
 	{
 		return *this->windowsize;
 	}
 
-	void SetWindowSize(_USHORT window)
+	void SetWindowSize(const _BYTE& window)
 	{
 		*this->windowsize = window;
 	}
 
-	_USHORT GetBlockSize()
+	const _USHORT& GetBlockSize() const
 	{
 		return *this->blocksize;
 	}
 
-	void SetBlockSize(_USHORT blocksize)
+	void SetBlockSize(const _USHORT& blocksize)
 	{
 		*this->blocksize = blocksize;
 	}
 
-	_USHORT GetMSFTWindow()
+	const _USHORT& GetMSFTWindow() const
 	{
 		return *this->msftwindow;
 	}
 
-	void SetMSFTWindow(_USHORT window)
+	void SetMSFTWindow(const _USHORT& window)
 	{
 		*this->msftwindow = window;
 	}
 
-	_USHORT GetCurrentBlock()
+	const _USHORT& GetCurrentBlock() const
 	{
 		return *this->block;
 	}
 
-	_SIZET GetBytesToRead()
+	const _SIZET& GetBytesToRead() const
 	{
 		return *this->bytesToRead;
 	}
 
-	void SetBytesToRead(_SIZET bytes)
+	void SetBytesToRead(const _SIZET& bytes)
 	{
 		*this->bytesToRead = bytes;
 	}
 
-	_SIZET GetBytesRead()
+	const _SIZET& GetBytesRead() const
 	{
 		return *this->bytesread;
 	}
 
-	void SetBytesRead(_SIZET bytes)
+	void SetBytesRead(const _SIZET& bytes)
 	{
 		if (bytes == 0)
 			*this->bytesread = bytes;
@@ -1152,7 +1428,7 @@ typedef struct TFTP_CLIENT
 			*this->bytesread += bytes;
 	}
 
-	std::string GetFilename()
+	const std::string& GetFilename()
 	{
 		return *this->filename;
 	}
@@ -1172,27 +1448,45 @@ typedef struct TFTP_CLIENT
 		this->msftwindow = new _USHORT(27182);
 		this->retries = new _BYTE(0);
 		this->tftp_state = new CLIENTSTATE(CLIENTSTATE::TFTP_INIT);
-		this->windowsize = new _USHORT(1);
+		this->windowsize = new _BYTE(1);
 		this->filehandle = nullptr;
 	}
 
 	~TFTP_CLIENT()
 	{
 		delete this->filename;
+		this-> filename = nullptr;
+		
 		delete this->block;
+		this->block = nullptr;
+
 		delete this->blocksize;
+		this->blocksize = nullptr;
+
 		delete this->bytesread;
+		this->bytesread = nullptr;
+
 		delete this->bytesToRead;
+		this->bytesToRead = nullptr;
+
 		delete this->msftwindow;
+		this->msftwindow = nullptr;
+
 		delete this->retries;
+		this->retries = nullptr;
+
 		delete this->tftp_state;
+		this->tftp_state = nullptr;
+
 		delete this->windowsize;
+		this->windowsize = nullptr;
+
 		this->CloseFile();
 	}
 
 private:
 	_BYTE* retries = nullptr;
-	_USHORT* windowsize = nullptr;
+	_BYTE* windowsize = nullptr;
 	_USHORT* msftwindow = nullptr;
 	_USHORT* block = nullptr;
 	_USHORT* blocksize = nullptr;
@@ -1203,7 +1497,6 @@ private:
 	_SIZET* bytesToRead = nullptr;
 	FILE* filehandle = nullptr;
 } TFTP_CLIENT;
-
 
 typedef enum NTLMSSP_FLAGS
 {
@@ -1264,7 +1557,9 @@ public:
 	{
 		this->Type = NTLMSSP_TARGETINFO_TYPE::END;
 		this->Length = 0;
-		delete[] Data;
+
+		delete[] this->Data;
+		this->Data = nullptr;
 	}
 
 } NTLMSSP_TARGETINFO_ENTRY;
@@ -1286,7 +1581,7 @@ public:
 		ClearBuffer(this, sizeof *this);
 	};
 
-	void Set_Length(const _SIZET length)
+	void Set_Length(const _SIZET& length)
 	{
 		this->Length = static_cast<_USHORT>(length);
 		this->AllocatedSpace = this->Length;
@@ -1297,7 +1592,7 @@ public:
 		return this->Length;
 	}
 
-	void Set_Position(const _SIZET position)
+	void Set_Position(const _SIZET& position)
 	{
 		this->Position = position;
 	}
@@ -1372,3 +1667,4 @@ public:
 			NBDomain, this->targetNameData, this->targetInfo.Get_Length()));
 	}
 } NTLMSSP_MESSAGE;
+

@@ -1,9 +1,16 @@
 /*
- * environment_windows.h
- *
- *  Created on: 15.02.2019
- *      Author: lipkegu
- */
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #pragma once
 #ifndef ENVIRONMENT_ENVIRONMENT_WINDOWS_H_
 #define ENVIRONMENT_ENVIRONMENT_WINDOWS_H_
@@ -27,17 +34,10 @@ typedef _UINT _SOCKET;
 typedef _UINT _SOCKLENT;
 #endif
 #endif
+#define SO_REUSEPORT SO_REUSE_UNICASTPORT
 #define _GET_CUR_WORKINGDIR(p,s) _getcwd(p, s)
 #define _close(s) closesocket(s)
 #define ClearBuffer(x, y) memset(x, 0, y)
 #define _STAT _stat
-namespace Namiono
-{
-	namespace Network
-	{
-		bool Init_Winsock(int major, int minor);
-		bool Close_Winsock();
-	}
-}
 
 #endif /* ENVIRONMENT_ENVIRONMENT_WINDOWS_H_ */

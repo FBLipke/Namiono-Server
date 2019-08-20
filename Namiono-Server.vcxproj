@@ -22,7 +22,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{464132A1-076C-47B4-8469-9564FD649183}</ProjectGuid>
     <RootNamespace>NamionoServer</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -41,7 +41,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -78,6 +78,9 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
+    <Link>
+      <Profile>true</Profile>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -88,7 +91,9 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
+    <Link />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -123,11 +128,14 @@
     <ClInclude Include="Environment\environment.h" />
     <ClInclude Include="Environment\environment_linux.h" />
     <ClInclude Include="Environment\environment_windows.h" />
+    <ClInclude Include="Environment\Settings.h" />
+    <ClInclude Include="Namiono\Filesystem.h" />
     <ClInclude Include="Namiono\Functions.h" />
     <ClInclude Include="Namiono\Namiono.h" />
     <ClInclude Include="Namiono\Network\Client\Client.h" />
     <ClInclude Include="Namiono\Network\Network.h" />
     <ClInclude Include="Namiono\Network\Packet\Packet.h" />
+    <ClInclude Include="Namiono\Network\Server\IfaceInfo.h" />
     <ClInclude Include="Namiono\Network\Server\Server.h" />
   </ItemGroup>
   <ItemGroup>
@@ -137,18 +145,34 @@
     <ClCompile Include="Namiono\Namiono.cpp" />
     <ClCompile Include="Namiono\Network\Network.cpp" />
     <ClCompile Include="Namiono\Network\Packet\Packet.cpp" />
+    <ClCompile Include="Namiono\Filesystem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="CppProperties.json" />
+    <None Include="Makefile" />
     <None Include="TFTP_Root\Boot\apitest.0" />
     <None Include="TFTP_Root\Boot\bisconfig.0" />
     <None Include="TFTP_Root\Boot\bstrap.0" />
+    <None Include="TFTP_Root\Boot\x64\boot.sdi" />
+    <None Include="TFTP_Root\Boot\x64\bootmgfw.efi" />
+    <None Include="TFTP_Root\Boot\x64\bootmgr.exe" />
     <None Include="TFTP_Root\Boot\x64\default.bcd" />
     <None Include="TFTP_Root\Boot\x64\pxeboot.n12" />
     <None Include="TFTP_Root\Boot\x64\wdsmgfw.efi" />
     <None Include="TFTP_Root\Boot\x64\wdsnbp.com" />
     <None Include="TFTP_Root\Boot\x86\default.bcd" />
+    <None Include="TFTP_Root\Boot\x86\ntldr" />
+    <None Include="TFTP_Root\Boot\x86\pxeboot.n12" />
+    <None Include="TFTP_Root\Boot\x86\setupldr.exe" />
+    <None Include="TFTP_Root\Boot\x86\startrom.n12" />
     <None Include="TFTP_Root\Boot\x86\wdsnbp.com" />
+    <None Include="TFTP_Root\OSChooser\English\welcome.osc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="TFTP_Root\Boot\x64\Fonts\wgl4_boot.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Config\config.txt" />
+    <Text Include="Config\servers.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

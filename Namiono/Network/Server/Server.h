@@ -1,9 +1,16 @@
 /*
- * Server.h
- *
- *  Created on: 18.02.2019
- *      Author: lipkegu
- */
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+#pragma once
 
 #ifndef NAMIONO_NETWORK_SERVER_SERVER_H_
 #define NAMIONO_NETWORK_SERVER_SERVER_H_
@@ -18,32 +25,74 @@ namespace Namiono
 		class Server
 		{
 		public:
-			Server(ServiceType* type, int family, _IPADDR address, _USHORT port, const std::string& rootDir,
+			Server(ServiceType* type, _INT32 family, bool mcast_mode, _IPADDR address, _IPADDR gateway, _IPADDR netmask, _USHORT port, const std::string& rootDir,
 				std::function<void(ServiceType*, Server<S>*, Client<S>*, std::string&, Packet*)> cb)
 			{
 				this->type = *type;
 				this->_address = address;
+				this->_gateway = gateway;
+				this->_netmask = netmask;
+				this->mcast_mode = mcast_mode;
 				this->_port = port;
 				this->family = family;
 				this->callback = cb;
-
+				this->clients = new std::map<std::string, Client<S>*>();
 				this->rootDir = rootDir;
-				this->listener.sin_addr.s_addr = INADDR_ANY;
+				this->listener.sin_addr.s_addr = mcast_mode ? inet_addr("224.0.2.1") : this->_address;
 				this->listener.sin_family = this->family;
 				this->listener.sin_port = htons(this->_port);
 				this->_socket = socket(this->family, SOCK_DGRAM, IPPROTO_UDP);
 
-				Set_Option(SOL_SOCKET, SO_REUSEADDR, 1);
-				Set_Option(SOL_SOCKET, SO_BROADCAST, 1);
-				Set_Option(SOL_SOCKET, SO_REUSE_UNICASTPORT, 1);
+				this->localInterface.s_addr = inet_addr(SETTINGS.DISCOVERY_ADDR.c_str());
+				
+				Set_Option(SOL_SOCKET, SO_REUSEADDR, SETTINGS.SOCKET_REUSEADDR);
+				Set_Option(SOL_SOCKET, SO_BROADCAST, SETTINGS.SOCKET_BROADCAST);
+				Set_Option(SOL_SOCKET, SO_REUSEPORT, SETTINGS.SOCKET_REUSEPORT);
+
+				if (this->mcast_mode)
+				{
+					ClearBuffer(&mreq, sizeof mreq);
+					mreq.imr_multiaddr.s_addr = inet_addr("224.0.2.1");
+					mreq.imr_interface.s_addr = this->mcast_mode ? this->localInterface.s_addr : this->_address;
+
+					setsockopt(this->_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq));
+					setsockopt(this->_socket, IPPROTO_IP, IP_MULTICAST_IF, (char *)&this->localInterface, sizeof(this->localInterface));
+				}
 			}
 
-			~Server()
+			void Close()
 			{
+				for (const std::pair<const std::string, Client<S>*>& client : *this->clients)
+					this->Remove_Client(client.first);
+
+				this->clients->clear();
+
+				delete this->clients;
+				this->clients = nullptr;
+				if (this->mcast_mode)
+					setsockopt(this->_socket, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char*)&mreq, sizeof(mreq));
+
+
 				_close(this->_socket);
 			}
+			
+			~Server()
+			{
+				this->Close();
+			}
 
-			bool Set_Option(_USHORT level, _USHORT option, int value)
+			bool Has_Client(const std::string& key)
+			{
+				return clients->find(key) != clients->end();
+			}
+
+			bool Set_Option(const _USHORT& level, const _USHORT& option, const char* value)
+			{
+				return setsockopt(this->_socket, level,
+					option, reinterpret_cast<const char*>(&value), sizeof value) == 0;
+			}
+
+			bool Set_Option(const _USHORT& level, const _USHORT& option, const _INT32 value)
 			{
 				return setsockopt(this->_socket, level,
 					option, reinterpret_cast<const char*>(&value), sizeof value) == 0;
@@ -54,21 +103,35 @@ namespace Namiono
 				std::string addr = Functions::AddressStr(
 					remote.sin_addr.s_addr, remote.sin_family);
 
-				if (clients.find(addr) != clients.end())
+				if (Has_Client(addr))
 				{
-					clients.at(addr)->Set_Port(remote.sin_port);
-					
-					return clients.at(addr).get();
+					clients->at(addr)->Set_Port(remote.sin_port);
+					return clients->at(addr);
 				}
 
-				clients.emplace(addr, new Client<S>(type, Functions::AddressStr(this->Get_IPAddress()), remote, addr));
+				clients->emplace(addr, new Client<S>(type, Functions::AddressStr(this->Get_IPAddress()), remote, addr));
 
-				return clients.at(addr).get();
+				return clients->at(addr);
 			}
 
-			_IPADDR Get_IPAddress() const
+			const _IPADDR& Get_IPAddress() const
 			{
 				return this->_address;
+			}
+
+			const _IPADDR& Get_NetMask() const
+			{
+				return this->_netmask;
+			}
+
+			const _IPADDR& Get_Gateway() const
+			{
+				return this->_gateway;
+			}
+
+			const _USHORT& Get_Port() const
+			{
+				return this->_port;
 			}
 
 			std::string Get_ServerName() const
@@ -76,38 +139,48 @@ namespace Namiono
 				return Get_Hostname();
 			}
 
-			void Remove_Client(Client<S>* client)
+			void Remove_Client(const std::string& ident)
 			{
-				if (clients.find(client->Get_ID()) != clients.end())
+				std::string _id = ident;
+
+				if (Has_Client(_id))
 				{
-					printf("[I] Dropping %s Client \"%s\"\n", 
-						client->Get_TypeString().c_str(),
-							client->Get_ID().c_str());
-					clients.erase(client->Get_ID());
+					delete clients->at(_id);
+					clients->at(_id) = nullptr;
+
+					clients->erase(_id);
 				}
 			}
 
-			int Listen()
+			_INT32 Listen()
 			{
 #ifdef _WIN32
-				int listener_length = sizeof this->listener;
+				_INT32 listener_length = sizeof this->listener;
 #else
 				socklen_t listener_length = sizeof this->listener;
 #endif
 				int retval = bind(this->_socket, reinterpret_cast<const struct sockaddr*>(&this->listener), listener_length);
 				if (retval == SOCKET_ERROR)
-				{
-					printf("[E] bind(): %s (Address: %s)\n", strerror(errno),
-						inet_ntoa(this->listener.sin_addr));
-
 					return retval;
+				
+				std::string _typestr = "";
+
+				switch (this->type)
+				{
+				case DHCP_SERVER:
+					_typestr = "DHCP (Proxy)";
+					break;
+				case BINL_SERVER:
+					_typestr = "BINL";
+					break;
+				case TFTP_SERVER:
+					_typestr = "TFTP";
+					break;
+				default:
+					break;
 				}
 
-				if (retval == -1)
-				{
-					printf("[E] bind(): %s\n", strerror(errno));
-					return retval;
-				}
+				printf("[I] %s Listening on %s:%d\n", _typestr.c_str(), Functions::AddressStr(this->Get_IPAddress()).c_str(), this->Get_Port());
 
 				while (retval != SOCKET_ERROR)
 				{
@@ -121,51 +194,80 @@ namespace Namiono
 					_SIZET bytes = SOCKET_ERROR;
 					remote_len = sizeof remote;
 					bytes = recvfrom(this->_socket, buffer, 16385, 0, reinterpret_cast<struct sockaddr*>(&remote), &remote_len);
-					if (bytes == -1)
+					if (bytes == SOCKET_ERROR)
 					{
 						printf("[E] recvfrom(): %s\n", strerror(errno));
 						continue;
 					}
 
-					Packet * request = new Packet(type, buffer, &bytes);
+					Packet* request = new Packet(&type, buffer, &bytes);
 					delete[] buffer;
+					buffer = nullptr;
 
 					callback(&type, this, Add_Client(remote), this->rootDir, request);
-				
+
 					delete request;
+					request = nullptr;
 				}
 
 				return retval;
 			}
 
-			int Send(Client<S>* client, Packet* packet)
+			_INT32 Send(const Client<S>* client)
 			{
-				S _hint = client->Get_Hint();
+				S _hint = client->Get_Client_Hint();
 
-				return sendto(this->_socket, packet->Get_Buffer(), static_cast
-					<int>(packet->get_Length()), 0, reinterpret_cast<struct sockaddr*>(&_hint), sizeof _hint);
+				switch (this->type)
+				{
+				case DHCP_SERVER:
+					if (client->dhcp->Get_State() == DHCP_RELAY)
+					{
+						_hint = client->Get_Relay_Hint();
+					}
+					break;
+				default:
+					break;
+				}
+							   
+				
+				if (this->mcast_mode)
+				{
+					return sendto(this->_socket, client->response->Get_Buffer(), static_cast
+						<_INT32>(client->response->get_Length()), 0, reinterpret_cast<struct sockaddr*>(&this->listener), sizeof this->listener);
+				}
+
+				return sendto(this->_socket, client->response->Get_Buffer(), static_cast
+					<_INT32>(client->response->get_Length()), 0, reinterpret_cast<struct sockaddr*>(&_hint), sizeof _hint);
 			}
 
 		private:
 			std::function<void(ServiceType*, Server<S>*, Client<S>*, std::string&, Packet*)> callback;
-			std::map<std::string, std::unique_ptr<Client<S>>> clients;
+			std::map<std::string, Client<S>*>* clients = nullptr;
 			_IPADDR _address = 0;
-			_USHORT _port;
+			_IPADDR _gateway = 0;
+			_IPADDR _netmask = 0;
+
+			_USHORT _port = 0;
 			S listener;
-			_SOCKET _socket;
-			int family;
+			_SOCKET _socket = 0;
+			int family = 0;
 			ServiceType type;
-			std::string hname;
-			std::string ident;
-			std::string rootDir;
+			std::string hname = "";
+			std::string ident = "";
+			std::string rootDir = "";
+			in_addr localInterface;
+			bool mcast_mode = false;
+			ip_mreq mreq;
 		};
 
 		template<class S>
-		void __serverThread(ServiceType type, int family, _IPADDR address, _USHORT port, const std::string& rootDir,
-				std::function<void(ServiceType*, Server<S>*, Client<S>*, std::string&, Packet*)> cb)
+		void __serverThread(ServiceType type, _INT32 family, bool mcast_mode, _IPADDR address, _IPADDR gateway, _IPADDR netmask, _USHORT port, const std::string& rootDir,
+			std::function<void(ServiceType*, Server<S>*, Client<S>*, std::string&, Packet*)> cb)
 		{
-			Server<S>* serv = new Server<S>(&type, family, address, port, rootDir, cb);
+			Server<S>* serv = new Server<S>(&type, family, mcast_mode, address, gateway, netmask, port, rootDir, cb);
 			serv->Listen();
+			delete serv;
+			serv = nullptr;
 		}
 
 	}

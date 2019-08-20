@@ -1,9 +1,16 @@
 /*
- * environment.h
- *
- *  Created on: 15.02.2019
- *      Author: lipkegu
- */
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #pragma once
 #ifndef ENVIRONMENT_ENVIRONMENT_H_
 #define ENVIRONMENT_ENVIRONMENT_H_
@@ -14,13 +21,16 @@
 #include <thread>
 #include <memory>
 #include <fstream>
+#include <cmath>
 #include <functional>
 #include <sstream>
 
 #pragma once
+
 typedef unsigned short _USHORT;
 typedef unsigned long _ULONG;
 typedef unsigned int _UINT;
+typedef int _INT32;
 typedef unsigned long long _ULONGLONG;
 typedef unsigned char _BYTE;
 
@@ -54,30 +64,14 @@ typedef unsigned char _BYTE;
 				((static_cast<_UINT>(x) << 8) & 0xff0000) | (static_cast<_UINT>(x) << 24))
 #endif
 
-
 #endif /* ENVIRONMENT_ENVIRONMENT_H_ */
+
+void print_Error(const std::string& message, _INT32 errorcode = 0);
 
 namespace Namiono
 {
 	namespace Network
 	{
 		std::string Get_Hostname();
-	}
-
-	namespace Environemnt
-	{
-		namespace Filesystem
-		{
-			std::string __pathSeperatorChar();
-			bool __has_endingslash(const std::string& p);
-			std::string CurrentDirectory();
-			bool IsDirExist(const std::string& path);
-			bool MakePath(const std::string& path);
-			std::string Combine(const std::string& p1, const std::string& p2);
-			_SIZET FileLength(const std::string& file);
-			bool FileExist(const std::string& filename);
-			std::string Replace(std::string& str, const std::string& from, const std::string& to);
-			
-		}
 	}
 }

@@ -1,0 +1,3 @@
+PxePrompt = 
+PxeBootMenu = 1
+PxePromptTimeout = 255

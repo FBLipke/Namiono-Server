@@ -1,9 +1,15 @@
 /*
- * Packet.cpp
- *
- *  Created on: 18.02.2019
- *      Author: lipkegu
- */
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <Namiono/Namiono.h>
 
@@ -11,13 +17,13 @@ namespace Namiono
 {
 	namespace Network
 	{
-		Packet::Packet(const ServiceType& serviceType, const char* data, const _SIZET* length)
+		Packet::Packet(ServiceType* serviceType, const char* data, const _SIZET* length)
 		{
-			this->serviceType = serviceType;
+			this->serviceType = *serviceType;
 			this->packetLength = *length;
 			this->buffer = new char[*length];
 			_USHORT tftp_op = 0;
-
+			_UINT ris_opcode = 0;
 			ClearBuffer(this->Get_Buffer(), *length);
 
 			memcpy(this->Get_Buffer(), data, *length);
@@ -31,7 +37,25 @@ namespace Namiono
 
 				if (this->get_opcode() == BINL_REQUEST)
 				{
-					this->Set_Opcode(BINL_REQ);
+					memcpy(&ris_opcode, &this->Get_Buffer()[0], sizeof ris_opcode);
+
+					switch (static_cast<Packet_OPCode>(ris_opcode))
+					{
+					case BS32(BINL_RQU):
+						this->Set_Opcode(BINL_RQU);
+						break;
+					case BS32(BINL_RSU):
+						this->Set_Opcode(BINL_RSU);
+						break;
+					case BS32(BINL_CHA):
+						this->Set_Opcode(BINL_CHA);
+						break;
+					case BS32(BINL_REQ):
+						this->Set_Opcode(BINL_REQ);
+						break;
+					default:
+						break;
+					}
 					this->packetLength = this->Get_Buffer()[4];
 				}
 
@@ -50,13 +74,16 @@ namespace Namiono
 				case DHCP_RES:
 					if (this->Get_Buffer() == nullptr)
 					{
-						print_Error("[E] FATAL ERROR: Have NULL Buffer\n!");
+						print_Error("[E] FATAL ERROR: Have NULL Buffer!\n");
 						return;
 					}
 
 					this->packetLength = *length;
 					if (this->get_Length() <= static_cast<_SIZET>(240))
+					{
+						print_Error("[W] Got (very) short packet!\n");
 						break;
+					}
 
 					for (_SIZET i = 240; i < this->get_Length(); i++)
 					{
@@ -74,7 +101,7 @@ namespace Namiono
 								static_cast<_BYTE>(this->Get_Buffer()[i + 1]), &this->Get_Buffer()[i + sizeof(_USHORT)]));
 						}
 
-						i += static_cast<_SIZET>(1 + static_cast<SIZE_T>(this->Get_Buffer()[i + 1]));
+						i += static_cast<_SIZET>(1 + static_cast<_SIZET>(this->Get_Buffer()[i + 1]));
 					}
 					break;
 				default:
@@ -89,8 +116,8 @@ namespace Namiono
 				case TFTP_OPCODE::TFTP_Read:
 					this->Set_Opcode(TFTP_RRQ);
 					char filename[255];
-					ClearBuffer(&filename, sizeof filename);
-					strncpy(filename, &this->Get_Buffer()[2], sizeof filename);
+					ClearBuffer(&filename, 255);
+					strncpy(filename, &this->Get_Buffer()[2], 255);
 
 					this->Add_TFTPOption(TFTP_Option("File", std::string(filename)));
 
@@ -100,8 +127,8 @@ namespace Namiono
 						std::stringstream ssv;
 
 						_SIZET position = 0;
-						char value[64];
-						ClearBuffer(value, sizeof value);
+						char* value = new char[64];
+						ClearBuffer(value, 64);
 
 						for (_SIZET i = sizeof(_USHORT); i < *length; i++)
 						{
@@ -115,12 +142,15 @@ namespace Namiono
 								sso << option;
 								ssv << value;
 
-								if (Functions::Compare(ssv.str().c_str(), "octet", 5))
-									Add_TFTPOption(TFTP_Option("Mode", "octet"));
-								else
+								if (!Functions::Compare(ssv.str().c_str(), "octet", 5) && !Functions::Compare(sso.str().c_str(), "octet", 5))
 									Add_TFTPOption(TFTP_Option(sso.str().c_str(), ssv.str().c_str()));
 							}
 						}
+
+
+
+						delete[] value;
+						value = nullptr;
 
 						position = 0;
 					}
@@ -135,25 +165,20 @@ namespace Namiono
 				break;
 			case BINL_REQUEST:
 			case BINL_REPLY:
-				this->packetLength = this->Get_Buffer()[4];
-				if (this->get_opcode() == BINL_REQUEST)
-					this->Set_Opcode(BINL_REQ);
-
-				if (this->get_opcode() == BINL_REPLY)
-					this->Set_Opcode(BINL_RES);
 				break;
 			default:
 				break;
 			}
 		}
 
-		Packet::Packet(Packet& packet, const _SIZET length, const DHCP_MSGTYPE& msgType)
+		Packet::Packet(ServiceType* serviceType, Packet& packet, const _SIZET& length, const DHCP_MSGTYPE& msgType)
 		{
 			_SIZET maxpktSize = length;
+			this->serviceType = *serviceType;
 
 			if (packet.Has_DHCPOption(57))
 				maxpktSize = packet.Get_DHCPOption(57)
-					.Get_Value_As_USHORT();
+				.Get_Value_As_USHORT();
 
 			this->buffer = new char[length];
 			ClearBuffer(this->Get_Buffer(), length);
@@ -165,8 +190,36 @@ namespace Namiono
 			set_hwlength(packet.get_hwlength());
 
 			memcpy(&this->Get_Buffer()[28], &packet.Get_Buffer()[28], this->get_hwlength());
+
+			if (packet.get_xid() == 0)
+			{
+				printf("[W] DHCP client (%s): Invalid Transaction ID (%d)!\n",
+					Functions::AddressStr(packet.get_clientIP()).c_str(), packet.get_xid());
+			}
+
+
 			set_xid(packet.get_xid());
-			set_flags(packet.get_flags());
+
+			switch (get_flags())
+			{
+			case DHCP_FLAGS::Unicast:
+				if (get_clientIP() == 0)
+				{
+					set_flags(DHCP_FLAGS::Broadcast);
+				}
+				else
+				{
+					set_flags(packet.get_flags());
+				}
+
+				break;
+			case DHCP_FLAGS::Broadcast:
+				set_flags(packet.get_flags());
+				break;
+			default:
+				break;
+			}
+
 			set_hops(packet.get_hops());
 			set_secs(packet.get_secs());
 			set_clientIP(packet.get_clientIP());
@@ -183,23 +236,26 @@ namespace Namiono
 				Add_DHCPOption(packet.Get_DHCPOption(97));
 		}
 
-		Packet::Packet(const _SIZET& length, const Packet_OPCode& opcode)
+		Packet::Packet(ServiceType* serviceType, const _SIZET& length, const Packet_OPCode& opcode)
 		{
 			this->buffer = new char[length];
 			ClearBuffer(this->Get_Buffer(), length);
-
+			this->serviceType = *serviceType;
 			this->set_Length(length);
 			this->Set_Opcode(opcode);
 		}
 
 		Packet::~Packet()
 		{
-			delete[] buffer;
+			delete[] this->buffer;
+			this->buffer = nullptr;
+
 			dhcp_options.clear();
+
 			tftp_options.clear();
 		}
 
-		_SIZET Packet::Write(const void* data, const _SIZET length, const _SIZET position)
+		_SIZET Packet::Write(const void* data, const _SIZET& length, const _SIZET& position)
 		{
 			memcpy(&this->Get_Buffer()[position], data, length);
 			this->set_Length(length);
@@ -207,43 +263,43 @@ namespace Namiono
 			return length;
 		}
 
-		void Packet::Write(_ULONG data, const _SIZET position)
+		void Packet::Write(const _ULONG& data, const _SIZET& position)
 		{
 			memcpy(&this->Get_Buffer()[position], &data, sizeof(_ULONG));
 			this->set_Length(sizeof(_ULONG));
 		}
 
-		void Packet::Write(_UINT data, const _SIZET position)
+		void Packet::Write(const _UINT& data, const _SIZET& position)
 		{
 			memcpy(&this->Get_Buffer()[position], &data, sizeof(_UINT));
 			this->set_Length(sizeof(_UINT));
 		}
 
-		void Packet::Write(_BYTE data, const _SIZET position)
+		void Packet::Write(const _BYTE& data, const _SIZET& position)
 		{
 			memcpy(&this->Get_Buffer()[position], &data, sizeof(_BYTE));
 			this->set_Length(sizeof(_BYTE));
 		}
 
-		void Packet::Write(_USHORT data, const _SIZET position)
+		void Packet::Write(const _USHORT& data, const _SIZET& position)
 		{
 			memcpy(&this->Get_Buffer()[position], &data, sizeof(_USHORT));
 		}
 
-		_SIZET Packet::Read(void* data, const _SIZET length, const _SIZET position)
+		_SIZET Packet::Read(void* data, const _SIZET& length, const _SIZET& position)
 		{
 			memcpy(data, &this->Get_Buffer()[position], length);
 			return length;
 		}
 
-		void Packet::Add_DHCPOption(const DHCP_Option option)
+		void Packet::Add_DHCPOption(const DHCP_Option& option)
 		{
 			Remove_DHCPOption(option.Option);
 
 			dhcp_options.emplace(option.Option, option);
 		}
 
-		void Packet::Add_TFTPOption(const TFTP_Option option)
+		void Packet::Add_TFTPOption(const TFTP_Option& option)
 		{
 			Remove_TFTPOption(option.Option);
 
@@ -286,6 +342,24 @@ namespace Namiono
 			return BS16(blk);
 		}
 
+		void Packet::Dump()
+		{
+			switch (this->Get_Opcode())
+			{
+			case BINL_RSU:
+				FileWrite("RSU_Packet_DUMP.hex", this->Get_Buffer(), this->get_Length());
+				break;
+			case BINL_CHA:
+				FileWrite("CHA_Packet_DUMP.hex", this->Get_Buffer(), this->get_Length());
+				break;
+			case BINL_RQU:
+				FileWrite("RQU_Packet_DUMP.hex", this->Get_Buffer(), this->get_Length());
+				break;
+			default:
+				break;
+			}
+		}
+
 		void Packet::Trim()
 		{
 			switch (this->Get_Opcode())
@@ -322,16 +396,20 @@ namespace Namiono
 				packetLength = 240;
 				_offset = packetLength;
 
-				for (const std::pair<_BYTE, DHCP_Option>& option : dhcp_options)
-				{
-					_offset += Write(&option.second.Option, sizeof(_BYTE), _offset);
-					_offset += Write(&option.second.Length, sizeof(_BYTE), _offset);
+				if (dhcp_options.size() == 0)
+					return;
 
-					if (option.second.Length != 1)
-						_offset += Write(&option.second.Value, option.second.Length, _offset);
-					else if (option.second.Length != 0)
-						_offset += Write(&option.second.Value, option.second.Length, _offset);
+				for (_BYTE i = 0; i < dhcp_options.size(); i++)
+				{
+					_offset += Write(&dhcp_options.at(i).Option, sizeof(_BYTE), _offset);
+					_offset += Write(&dhcp_options.at(i).Length, sizeof(_BYTE), _offset);
+
+					if (dhcp_options.at(i).Length != 1)
+						_offset += Write(&dhcp_options.at(i).Value, dhcp_options.at(i).Length, _offset);
+					else if (dhcp_options.at(i).Length != 0)
+						_offset += Write(&dhcp_options.at(i).Value, dhcp_options.at(i).Length, _offset);
 				}
+
 				this->Trim();
 				break;
 			case TFTP_OACK:
@@ -345,7 +423,7 @@ namespace Namiono
 
 				_offset = packetLength;
 
-				for (std::pair<const std::string, TFTP_Option> & option : tftp_options)
+				for (const std::pair<const std::string, TFTP_Option> & option : tftp_options)
 				{
 					_offset += Write(option.first.c_str(), static_cast<_SIZET>(option.first.size() + 1), _offset);
 					_offset += static_cast<_SIZET>(Write(&option.second.Value, option.second.Length, _offset) + 1);
@@ -360,7 +438,7 @@ namespace Namiono
 			case BINL_RSU:
 			case BINL_CHA:
 				innerlen = (this->get_Length() - 8);
-				Write(&innerlen, 4, 4);
+				Write(&innerlen, sizeof innerlen, 4);
 				break;
 			default:
 				break;
@@ -406,20 +484,23 @@ namespace Namiono
 				Write(static_cast<_USHORT>(BS16(6)), 0);
 				break;
 			case BINL_RQU:
-				Write(static_cast<_ULONG>(BS32(BINL_RQU)), 0);
+				Write(static_cast<_ULONG>(BINL_RQU), 0);
 				break;
 			case BINL_RSU:
-				Write(static_cast<_ULONG>(BS32(BINL_RSU)), 0);
+				Write(static_cast<_ULONG>(BS32(BINL_RQU)), 0);
 				break;
 			case BINL_CHA:
-				Write(static_cast<_ULONG>(BS32(BINL_CHA)), 0);
+				Write(static_cast<_ULONG>(BINL_CHA), 0);
+				break;
+			case BINL_REQ:
 				break;
 			default:
+				printf("[E] Packet (Set_OPCode): Unknown OPCode: %d\n", this->opcode);
 				break;
 			}
 		}
 
-		void Packet::set_opcode(const DHCP_OPCODE op)
+		void Packet::set_opcode(const DHCP_OPCODE& op)
 		{
 			Write(static_cast<_BYTE>(op), 0);
 		}
@@ -432,7 +513,7 @@ namespace Namiono
 			return static_cast<DHCP_OPCODE>(_tmp);
 		}
 
-		void Packet::set_hwtype(const DHCP_HARDWARETYPE hwtype)
+		void Packet::set_hwtype(const DHCP_HARDWARETYPE& hwtype)
 		{
 			Write(static_cast<_BYTE>(hwtype), 1);
 		}
@@ -445,7 +526,7 @@ namespace Namiono
 			return static_cast<DHCP_HARDWARETYPE>(_tmp);
 		}
 
-		void Packet::set_hwlength(const _BYTE length)
+		void Packet::set_hwlength(const _BYTE& length)
 		{
 			Write(static_cast<_BYTE>(length), 2);
 		}
@@ -458,9 +539,14 @@ namespace Namiono
 			return _tmp;
 		}
 
-		void Packet::set_hops(const _BYTE hops)
+		void Packet::set_hops(const _BYTE& hops)
 		{
 			Write(static_cast<_BYTE>(hops), 3);
+		}
+
+		void Packet::increase_hops(const _BYTE & hops)
+		{
+			set_hops(get_hops() + 1);
 		}
 
 		_BYTE Packet::get_hops()
@@ -471,7 +557,7 @@ namespace Namiono
 			return _tmp;
 		}
 
-		void Packet::set_xid(const _ULONG xid)
+		void Packet::set_xid(const _ULONG& xid)
 		{
 			Write(static_cast<_ULONG>(xid), 4);
 		}
@@ -484,7 +570,7 @@ namespace Namiono
 			return _tmp;
 		}
 
-		void Packet::set_secs(const _USHORT secs)
+		void Packet::set_secs(const _USHORT& secs)
 		{
 			Write(static_cast<_USHORT>(secs), 8);
 		}
@@ -497,7 +583,7 @@ namespace Namiono
 			return _tmp;
 		}
 
-		void Packet::set_flags(const DHCP_FLAGS flags)
+		void Packet::set_flags(const DHCP_FLAGS& flags)
 		{
 			Write(static_cast<_USHORT>(flags), 10);
 		}
@@ -510,7 +596,7 @@ namespace Namiono
 			return static_cast<DHCP_FLAGS>(_tmp);
 		}
 
-		void Packet::set_clientIP(const _IPADDR ip)
+		void Packet::set_clientIP(const _IPADDR& ip)
 		{
 			Write(&ip, sizeof(_IPADDR), 12);
 		}
@@ -523,7 +609,7 @@ namespace Namiono
 			return _tmp;
 		}
 
-		void Packet::set_yourIP(const _IPADDR ip)
+		void Packet::set_yourIP(const _IPADDR& ip)
 		{
 			Write(&ip, sizeof(_IPADDR), 16);
 		}
@@ -536,7 +622,7 @@ namespace Namiono
 			return _tmp;
 		}
 
-		void Packet::set_nextIP(const _IPADDR ip)
+		void Packet::set_nextIP(const _IPADDR& ip)
 		{
 			Write(&ip, sizeof(_IPADDR), 20);
 		}
@@ -549,7 +635,7 @@ namespace Namiono
 			return _tmp;
 		}
 
-		void Packet::set_relayIP(const _IPADDR ip)
+		void Packet::set_relayIP(const _IPADDR& ip)
 		{
 			Write(&ip, sizeof(_IPADDR), 24);
 		}
@@ -583,7 +669,7 @@ namespace Namiono
 		std::string Packet::get_servername()
 		{
 			char _tmp[64];
-			ClearBuffer(&_tmp, sizeof _tmp);
+			ClearBuffer(_tmp, sizeof _tmp);
 
 			Read(&_tmp, sizeof _tmp, 44);
 
@@ -599,7 +685,7 @@ namespace Namiono
 		std::string Packet::get_filename()
 		{
 			char _tmp[128];
-			ClearBuffer(&_tmp, sizeof _tmp);
+			ClearBuffer(_tmp, sizeof _tmp);
 
 			Read(&_tmp, sizeof _tmp, 108);
 
@@ -623,7 +709,39 @@ namespace Namiono
 			return _tmp;
 		}
 
-		void Packet::set_Length(const _SIZET length)
+		std::string Packet::get_osc_filename(const std::string& rootDir)
+		{
+			_SIZET startpos = 28;
+
+			_SIZET length = this->get_Length() - (startpos + 1);
+			std::string filename = "";
+
+
+			if (length == 0)
+			{
+				filename = "welcome.osc";
+			}
+			else
+			{
+				char* filname = new char[length];
+				ClearBuffer(&filname, length);
+
+				memcpy(&filname, &this->Get_Buffer()[startpos], length);
+
+				filename = std::string(filname + std::string(".osc"));
+				delete[] filname;
+				filname = nullptr;
+			}
+
+			return filename;
+		}
+
+		void Packet::CopyFrom(const Packet & src, _SIZET srcOffset, _SIZET dstOffset, _SIZET length)
+		{
+			memcpy(&this->Get_Buffer()[dstOffset], &src.Get_Buffer()[srcOffset], length);
+		}
+
+		void Packet::set_Length(const _SIZET& length)
 		{
 			this->packetLength += length;
 		}
