@@ -1,5 +1,5 @@
 # Namiono-Server
-
+[![Build Status](https://travis-ci.org/FBLipke/Namiono-Server.svg?branch=master)](https://travis-ci.org/FBLipke/Namiono-Server)
 Namiono-Server
 
 Allows installing or booting Operating Systems via PXE over the Network. We hopefully can implement RBCP (Intels Remote Boot Configuration Protocol) with LCM Extensions... and also Apple's BSDP (BootServer Discovery Protocol) support. 
