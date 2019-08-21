@@ -112,13 +112,8 @@ namespace Namiono
 			_USHORT Get_Block();
 		
 			void Dump();
-		private:
 			void Trim();
-
-
-
-
-
+		private:
 			char* buffer = nullptr;
 			ServiceType serviceType;
 			Packet_OPCode opcode = PACKET_UNKNOWN;

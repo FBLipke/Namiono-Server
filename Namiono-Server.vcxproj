@@ -148,7 +148,10 @@
     <ClCompile Include="Namiono\Filesystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".gitattributes" />
+    <None Include=".gitignore" />
     <None Include="Makefile" />
+    <None Include="README.md" />
     <None Include="TFTP_Root\Boot\apitest.0" />
     <None Include="TFTP_Root\Boot\bisconfig.0" />
     <None Include="TFTP_Root\Boot\bstrap.0" />

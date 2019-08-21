@@ -28,6 +28,7 @@ public:
 	static void ExtractString(const char* buf, const size_t& size, char* out);
 	static bool FileExist(const char* Filename);
 	static _USHORT AsUSHORT(const char* input);
+	static std::string MacAsString(char * macBuffer, _SIZET length);
 	static bool CompareIPAddress(const _IPADDR& ip1, const _IPADDR& ip2, const _SIZET length);
 };
 

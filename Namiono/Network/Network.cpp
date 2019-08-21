@@ -180,11 +180,6 @@ namespace Namiono
 					if (Functions::Compare(packet->Get_DHCPOption(static_cast<_BYTE>(60)).Value, "PXEClient", 9))
 					{
 						client->dhcp->Set_Vendor(PXEClient);
-
-						if (packet->get_clientIP() == 0 && packet->get_opcode() == BOOTREQUEST)
-						{
-							Relay_Request_Packet(type, server, client, packet);
-						}
 					}
 					else
 					{
@@ -271,7 +266,24 @@ namespace Namiono
 			}
 		}
 
+		template<class S>
+		void Handle_Relayed_Packet(Server<S>* server, Packet* packet)
+		{
+			if (packet->Has_DHCPOption(static_cast<_BYTE>(82)))
+			{
 
+				/* For now remove them ... */
+				//packet->Remove_DHCPOption(static_cast<_BYTE>(82));
+			}
+			else
+			{
+				std::vector<DHCP_Option> relayOptions;
+				relayOptions.emplace_back(DHCP_Option(static_cast<_BYTE>(1), server->Get_ServerName()));
+				relayOptions.emplace_back(DHCP_Option(static_cast<_BYTE>(2), packet->get_xid()));
+				
+				packet->Add_DHCPOption(DHCP_Option(82, relayOptions));
+			}
+		}
 
 		template<class S>
 		void Relay_Request_Packet(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet)
@@ -279,10 +291,26 @@ namespace Namiono
 			/* Client request */
 			client->dhcp->Set_State(CLIENTSTATE::DHCP_RELAY);
 			client->Set_Relay_Hint(inet_addr("10.20.0.1"), 67);
+			Handle_Relayed_Packet(server, packet);
+
+			std::string mac = Functions::MacAsString(&packet->Get_Buffer()[28],
+				static_cast<_SIZET>(packet->get_hwlength())).c_str();
+
+			printf("[I] Forwarding BOOTREQUEST from %s to 10.20.0.1...\n", mac.c_str());
+
+			/*
+			Put the IP Address from the interface which received the request as giaddr field...
+			The Upstream DHCP server will send his response Packet back to this giaddr address...
+
+			We need also the giaddr to identify the interface... when receiving responses...
+			*/
+			
 			packet->set_relayIP(server->Get_IPAddress());
 			packet->set_flags(DHCP_FLAGS::Unicast);
 			packet->increase_hops(1);
 			client->response = packet;
+			client->response->Trim();
+
 			server->Send(client);
 		}
 
@@ -294,6 +322,14 @@ namespace Namiono
 			client->Set_Client_Hint(INADDR_BROADCAST, 68);
 
 			packet->set_flags(DHCP_FLAGS::Broadcast);
+			Handle_Relayed_Packet(server, packet);
+			std::string mac = Functions::MacAsString(&packet->Get_Buffer()[28],
+				static_cast<_SIZET>(packet->get_hwlength())).c_str();
+
+
+			printf("[I] Forwarding BOOTREPLY to %s...\n", mac.c_str());
+
+			client->response->Trim();
 
 			server->Send(client);
 			client->dhcp->Set_State(CLIENTSTATE::DHCP_DONE);
@@ -308,40 +344,44 @@ namespace Namiono
 			printf("[I] OSC File: %s\n", oscfile.c_str());
 			printf("[I] OSC Client: %s\n", client->Get_ID().c_str());
 
-
-			FILE* fil = fopen(oscfile.c_str(), "rb");
-			if (fil != nullptr)
+			if (FileExist(oscfile))
 			{
-				_SIZET fsize = FileLength(oscfile);
-				char _osc_content[65584];
-				ClearBuffer(_osc_content, sizeof _osc_content);
-				std::string osc_content = "";
-
-				if (FileRead(_osc_content, fsize, fil) != 0)
+				FILE* fil = fopen(oscfile.c_str(), "rb");
+				if (fil != nullptr)
 				{
-					osc_content = std::string(_osc_content);
-					osc_content = Functions::Replace(osc_content, "%MACHINENAME%", "Client01");
+					_SIZET fsize = FileLength(oscfile);
+					char _osc_content[65584];
+					ClearBuffer(_osc_content, sizeof _osc_content);
+					std::string osc_content = "";
 
-					client->response = new Packet(type, osc_content.size() + 36, BINL_RSU);
-					client->response->CopyFrom(*packet, 8, 8, 28);
-					client->response->Write(osc_content.c_str(), osc_content.size(), 28);
-					client->response->Commit();
-
-					if (server->Send(client) == SOCKET_ERROR)
+					if (FileRead(_osc_content, fsize, fil) != 0)
 					{
-						print_Error("Failed to send BINL Packet!\n");
+						osc_content = std::string(_osc_content);
+						osc_content = Functions::Replace(osc_content, "%MACHINENAME%", "Client01");
+
+						client->response = new Packet(type, osc_content.size() + 36, BINL_RSU);
+						client->response->CopyFrom(*packet, 8, 8, 28);
+						client->response->Write(osc_content.c_str(), osc_content.size(), 28);
+						client->response->Commit();
+
+						if (server->Send(client) == SOCKET_ERROR)
+						{
+							print_Error("Failed to send BINL Packet!\n");
+						}
+
+						delete client->response;
+						client->response = nullptr;
+
+
+						fclose(fil);
 					}
-
-					delete client->response;
-					client->response = nullptr;
-
-
-					fclose(fil);
 				}
 			}
 			else
 			{
 				print_Error("The File was not found!");
+
+				/* Send an OSC "NOTFOUND message back to the client... */
 			}
 		}
 

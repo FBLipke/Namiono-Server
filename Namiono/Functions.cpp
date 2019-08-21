@@ -33,6 +33,25 @@ _USHORT Functions::AsUSHORT(const char* input)
 	return static_cast<_USHORT>(strtoul(input, nullptr, 0));
 }
 
+std::string Functions::MacAsString(char* macBuffer, _SIZET length)
+{
+	char out[32];
+	ClearBuffer(out, sizeof(out));
+	std::string mac = "";
+
+	sprintf(out, "%02X:%02X:%02X:%02X:%02X:%02X\0",
+		(_BYTE)macBuffer[0],
+		(_BYTE)macBuffer[1],
+		(_BYTE)macBuffer[2],
+		(_BYTE)macBuffer[3],
+		(_BYTE)macBuffer[4],
+		(_BYTE)macBuffer[5]);
+
+	mac = std::string(out);
+
+	return mac;
+}
+
 _INT32 Functions::RoundToInteger(double value)
 {
 	return _INT32(static_cast<_INT32>(round(value + 0.5)));

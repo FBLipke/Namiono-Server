@@ -97,6 +97,9 @@
     <None Include="TFTP_Root\Boot\x86\pxeboot.n12" />
     <None Include="TFTP_Root\OSChooser\English\welcome.osc" />
     <None Include="Makefile" />
+    <None Include=".gitattributes" />
+    <None Include=".gitignore" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="TFTP_Root\Boot\x64\Fonts\wgl4_boot.ttf" />

@@ -24,6 +24,12 @@ typedef enum ServerMode
 	UNKNOWN = 5
 } ServerMode;
 
+typedef enum DHCP_RELAYAGENTOptions
+{
+	CircuitID = 1,
+	RemoteID = 2
+} DHCP_RELAYAGENTOptions;
+
 typedef enum RBCP_DISCOVERYCONTROL
 {
 	DISABLE_BCAST = 1,

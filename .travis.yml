@@ -1,0 +1,9 @@
+branches:
+  only:
+    - master
+
+before_install:
+script: make
+language: cpp
+compiler: g++
+
