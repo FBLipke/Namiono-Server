@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <Namiono/Network/Packet/Packet.h>
 #include <Namiono/Network/Client/Client.h>
+#include <Namiono/Network/Server/Interface.h>
 #include <Namiono/Network/Server/Server.h>
 
 
@@ -30,37 +31,21 @@ namespace Namiono
 		bool Close_Winsock();
 #endif
 		void Bootstrap_Network(const std::string& rootDir);
-		template<class S>
-		void Handle_Request(ServiceType* type, Server<S>* server, Client<S>* client, const std::string& rootDir, Packet* packet);
-		template<class S>
-		void Handle_DHCP_Request(ServiceType* type, Server<S>* server, Client<S>* client, Packet* packet);
-		template<class S>
-		void Handle_TFTP_RRQ(ServiceType* type, Server<S>* server, Client<S>* client, const std::string& rootDir, Packet* packet);
-		template<class S>
-		void Handle_TFTP_ACK(ServiceType* type, Server<S>* server, Client<S>* client, Packet* packet);
-		template<class S>
-		void Handle_TFTP_ERR(ServiceType* type, Server<S>* server, Client<S>* client, Packet* packet);
-		template<class S>
-		void Handle_WDS_Options(Server<S> * server, Client<S> * client);
-		template<class S>
-		void Handle_DHCP_Discover(ServiceType* type, Server<S>* server, Client<S>* client, Packet* packet);
-		template<class S>
-		void Create_BootServer_List(Client<S>* client);
-		template<class S>
-		void GenerateBootMenue(Client<S>* client);
-		template<class S>
-		void Handle_IPXE_Options(Server<S>* server, Client<S>* client, Packet* response);
-		template<class S>
-		void Handle_RIS_RQU(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet, const std::string& rootDir);
-		template<class S>
-		void Handle_RIS_NEG(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet);
-		template<class S>
-		void Handle_RIS_AUT(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet);
-
-		template<class S>
-		void Relay_Request_Packet(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet);
-		template<class S>
-		void Relay_Response_Packet(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet);
+		void Handle_Request(ServiceType type, Server* server, int iface, Client* client, const std::string rootDir, Packet* packet);
+		void Handle_DHCP_Request(ServiceType* type, Server* server, int iface, Client* client, Packet* packet);
+		void Handle_TFTP_RRQ(ServiceType* type, Server* server, int iface, Client* client, const std::string& rootDir, Packet* packet);
+		void Handle_TFTP_ACK(ServiceType* type, Server* server, int iface, Client* client, Packet* packet);
+		void Handle_TFTP_ERR(ServiceType* type, Server* server, int iface, Client* client, Packet* packet);
+		void Handle_WDS_Options(Server* server, int iface, Client* client);
+		void Handle_DHCP_Discover(ServiceType* type, Server* server, int iface, Client* client, Packet* packet);
+		void Create_BootServer_List(Client* client);
+		void GenerateBootMenue(Client* client);
+		void Handle_IPXE_Options(Server* server, int iface, Client* client, Packet* response);
+		void Handle_RIS_RQU(ServiceType * type, Server* server, int iface, Client* client, Packet * packet, const std::string& rootDir);
+		void Handle_RIS_NEG(ServiceType * type, Server* server, int iface, Client* client, Packet * packet);
+		void Handle_RIS_AUT(ServiceType * type, Server* server, int iface, Client* client, Packet * packet);
+		void Relay_Request_Packet(ServiceType * type, Server* server, int iface, Client* client, Packet * packet);
+		void Relay_Response_Packet(ServiceType * type, Server* server, int iface, Client* client, Packet * packet);
 	}
 }
 

@@ -25,3 +25,4 @@ _SIZET FileLength(const std::string& file);
 bool FileExist(const std::string& filename);
 _SIZET FileRead(char* dst, _SIZET length, FILE* handle);
 _SIZET FileWrite(const std::string& filename, const char* src, _SIZET length);
+bool WriteLeaseEntry(const std::string& filename, const std::string& ipaddress, const std::string& mac);

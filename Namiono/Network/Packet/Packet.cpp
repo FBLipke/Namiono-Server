@@ -17,9 +17,9 @@ namespace Namiono
 {
 	namespace Network
 	{
-		Packet::Packet(ServiceType* serviceType, const char* data, const _SIZET* length)
+		Packet::Packet(const ServiceType& serviceType, const char* data, const _SIZET* length)
 		{
-			this->serviceType = *serviceType;
+			this->serviceType = serviceType;
 			this->packetLength = *length;
 			this->buffer = new char[*length];
 			_USHORT tftp_op = 0;
@@ -147,8 +147,6 @@ namespace Namiono
 							}
 						}
 
-
-
 						delete[] value;
 						value = nullptr;
 
@@ -171,10 +169,10 @@ namespace Namiono
 			}
 		}
 
-		Packet::Packet(ServiceType* serviceType, Packet& packet, const _SIZET& length, const DHCP_MSGTYPE& msgType)
+		Packet::Packet(const ServiceType& serviceType, Packet& packet, const _SIZET& length, const DHCP_MSGTYPE& msgType)
 		{
 			_SIZET maxpktSize = length;
-			this->serviceType = *serviceType;
+			this->serviceType = serviceType;
 
 			if (packet.Has_DHCPOption(57))
 				maxpktSize = packet.Get_DHCPOption(57)
@@ -236,11 +234,11 @@ namespace Namiono
 				Add_DHCPOption(packet.Get_DHCPOption(97));
 		}
 
-		Packet::Packet(ServiceType* serviceType, const _SIZET& length, const Packet_OPCode& opcode)
+		Packet::Packet(const ServiceType& serviceType, const _SIZET& length, const Packet_OPCode& opcode)
 		{
 			this->buffer = new char[length];
 			ClearBuffer(this->Get_Buffer(), length);
-			this->serviceType = *serviceType;
+			this->serviceType = serviceType;
 			this->set_Length(length);
 			this->Set_Opcode(opcode);
 		}
@@ -396,18 +394,15 @@ namespace Namiono
 				packetLength = 240;
 				_offset = packetLength;
 
-				if (dhcp_options.size() == 0)
-					return;
-
-				for (_BYTE i = 0; i < dhcp_options.size(); i++)
+				for (const std::pair<_BYTE, DHCP_Option>& option : dhcp_options)
 				{
-					_offset += Write(&dhcp_options.at(i).Option, sizeof(_BYTE), _offset);
-					_offset += Write(&dhcp_options.at(i).Length, sizeof(_BYTE), _offset);
+					_offset += Write(&option.second.Option, sizeof(_BYTE), _offset);
+					_offset += Write(&option.second.Length, sizeof(_BYTE), _offset);
 
-					if (dhcp_options.at(i).Length != 1)
-						_offset += Write(&dhcp_options.at(i).Value, dhcp_options.at(i).Length, _offset);
-					else if (dhcp_options.at(i).Length != 0)
-						_offset += Write(&dhcp_options.at(i).Value, dhcp_options.at(i).Length, _offset);
+					if (option.second.Length != 1)
+						_offset += Write(&option.second.Value, option.second.Length, _offset);
+					else if (option.second.Length != 0)
+						_offset += Write(&option.second.Value, option.second.Length, _offset);
 				}
 
 				this->Trim();

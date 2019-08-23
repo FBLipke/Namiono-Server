@@ -51,7 +51,7 @@
     <ClInclude Include="Namiono\Filesystem.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Network\Server\IfaceInfo.h">
+    <ClInclude Include="Namiono\Network\Server\Interface.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -77,6 +77,12 @@
     <ClCompile Include="Namiono\Filesystem.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="Namiono\Network\Server\Server.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="Namiono\Network\Server\Interface.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="TFTP_Root\Boot\x64\wdsnbp.com" />
@@ -100,6 +106,7 @@
     <None Include=".gitattributes" />
     <None Include=".gitignore" />
     <None Include="README.md" />
+    <None Include=".travis.yml" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="TFTP_Root\Boot\x64\Fonts\wgl4_boot.ttf" />

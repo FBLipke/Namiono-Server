@@ -19,11 +19,10 @@ namespace Namiono
 {
 	namespace Network
 	{
-		template<class S>
 		class Client
 		{
 		public:
-			Client(const ServiceType& sType, const std::string& serverid, const S& hint, const std::string& id)
+			Client(const ServiceType& sType, const std::string& serverid, const sockaddr_in& hint, const std::string& id)
 			{
 				this->type = sType;
 				this->_hint = hint;
@@ -58,7 +57,7 @@ namespace Namiono
 				this->_hint.sin_port = htons(port);
 			}
 
-			void Set_Client_Hint(const S& hint)
+			void Set_Client_Hint(const sockaddr_in& hint)
 			{
 				this->_hint = hint;
 
@@ -66,7 +65,7 @@ namespace Namiono
 					this->_hint.sin_addr.s_addr = INADDR_BROADCAST;
 			}
 
-			void Set_Relay_Hint(const S& hint)
+			void Set_Relay_Hint(const sockaddr_in& hint)
 			{
 				this->_relay = hint;
 
@@ -106,12 +105,12 @@ namespace Namiono
 				return std::string("Unknown");
 			}
 
-			const S& Get_Client_Hint() const
+			sockaddr_in& Get_Client_Hint()
 			{
 				return this->_hint;
 			}
 
-			const S& Get_Relay_Hint() const
+			sockaddr_in& Get_Relay_Hint()
 			{
 				return this->_relay;
 			}
@@ -138,8 +137,8 @@ namespace Namiono
 			Packet* response = nullptr;
 			std::string _socketID = "";
 		private:
-			S _hint;
-			S _relay;
+			sockaddr_in _hint;
+			sockaddr_in _relay;
 
 			std::string _id = "";
 

@@ -40,6 +40,13 @@ typedef enum RBCP_DISCOVERYCONTROL
 
 } RBCP_DISCOVERYCONTROL;
 
+
+typedef struct LeaseInfo
+{
+	std::string mac;
+	std::string addr;
+} LeaseInfo;
+
 typedef enum BootServerType
 {
 	PXEBootstrapServer = 0x0000,
@@ -205,6 +212,9 @@ typedef struct DHCP_Option
 
 	DHCP_Option(const _BYTE& opt, const _BYTE& length, const void* value)
 	{
+		if (length > 255)
+			return;
+
 		Option = opt;
 		Length = length;
 
@@ -216,6 +226,9 @@ typedef struct DHCP_Option
 
 	DHCP_Option(const _BYTE& opt, const std::string& value)
 	{
+		if (value.size() > 255)
+			return;
+
 		Option = opt;
 		Length = static_cast<_BYTE>(value.size());
 
@@ -246,7 +259,8 @@ typedef struct DHCP_Option
 		if (Length != 0)
 			memcpy(&Value, &value, Length);
 	}
-	DHCP_Option(const _BYTE& opt, const _UINT& value)
+
+	DHCP_Option(const _BYTE& opt, const _ULONG& value)
 	{
 		Option = opt;
 		Length = 4;
@@ -257,7 +271,7 @@ typedef struct DHCP_Option
 			memcpy(&Value, &value, Length);
 	}
 
-	DHCP_Option(const _BYTE& opt, const _ULONG& value)
+	DHCP_Option(const _BYTE& opt, const _UINT& value)
 	{
 		Option = opt;
 		Length = 4;
@@ -278,6 +292,9 @@ typedef struct DHCP_Option
 
 		for (_SIZET i = 0; i < value.size(); i++)
 			Length += value.at(i).Length + 2;
+
+		if (Length > 255)
+			return;
 
 		ClearBuffer(&Value, Length + 1);
 
@@ -321,12 +338,12 @@ typedef struct DHCP_Option
 		return static_cast<_USHORT>(val);
 	}
 
-	_ULONG Get_Value_As_IPADDR()
+	_IPADDR Get_Value_As_IPADDR()
 	{
-		_ULONG val = 0;
+		_IPADDR val = 0;
 		memcpy(&val, &this->Value, sizeof val);
 
-		return static_cast<_ULONG>(val);
+		return static_cast<_IPADDR>(val);
 	}
 
 	void Get_SubOptions(std::vector<DHCP_Option>& suboptionList)
@@ -838,17 +855,17 @@ typedef struct RBCP
 
 		if (addresses.size() == 0)
 		{
-			printf("[E] Passed Bootserver has no addresses!\n");
+			printf("[E] Passed Bootserver %s without no addresses!\n", name.c_str());
+			return;
 		}
-		else
-		{
-			if (Has_BootServer(id))
+
+		if (Has_BootServer(id))
 				return;
+#ifdef _DEBUG
+		printf("[D] Bootserver ( %s ) added!\n", name.c_str());
+#endif // _DEBUG
 			
-			printf("[D] Bootserver ( %s ) added!\n", name.c_str());
-			
-			bootServers->emplace_back(BootServerEntry(id, name, addresses, ""));
-		}
+		bootServers->emplace_back(BootServerEntry(id, name, addresses, ""));
 	}
 
 private:
@@ -1097,9 +1114,9 @@ typedef struct DHCP_CLIENT
 		this->vendorstring = nullptr;
 
 		this->vendorOpts->clear();
+
 		delete this->vendorOpts;
 		this->vendorOpts = nullptr;
-
 	}
 
 	void SetNextServer(const _IPADDR& ip)
@@ -1218,7 +1235,7 @@ typedef struct DHCP_CLIENT
 		*this->isBSDPRequest = is;
 	}
 
-	bool GetIsBSDPRequest() const
+	const bool GetIsBSDPRequest() const
 	{
 		return *this->isBSDPRequest;
 	}
@@ -1320,7 +1337,7 @@ typedef struct TFTP_CLIENT
 		*this->tftp_state = state;
 	}
 
-	const CLIENTSTATE& Get_State()
+	const CLIENTSTATE& Get_State() const
 	{
 		return *this->tftp_state;
 	}
@@ -1434,7 +1451,7 @@ typedef struct TFTP_CLIENT
 			*this->bytesread += bytes;
 	}
 
-	const std::string& GetFilename()
+	const std::string& GetFilename() const
 	{
 		return *this->filename;
 	}

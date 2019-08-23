@@ -28,7 +28,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -135,7 +135,7 @@
     <ClInclude Include="Namiono\Network\Client\Client.h" />
     <ClInclude Include="Namiono\Network\Network.h" />
     <ClInclude Include="Namiono\Network\Packet\Packet.h" />
-    <ClInclude Include="Namiono\Network\Server\IfaceInfo.h" />
+    <ClInclude Include="Namiono\Network\Server\Interface.h" />
     <ClInclude Include="Namiono\Network\Server\Server.h" />
   </ItemGroup>
   <ItemGroup>
@@ -146,10 +146,13 @@
     <ClCompile Include="Namiono\Network\Network.cpp" />
     <ClCompile Include="Namiono\Network\Packet\Packet.cpp" />
     <ClCompile Include="Namiono\Filesystem.cpp" />
+    <ClCompile Include="Namiono\Network\Server\Interface.cpp" />
+    <ClCompile Include="Namiono\Network\Server\Server.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
     <None Include=".gitignore" />
+    <None Include=".travis.yml" />
     <None Include="Makefile" />
     <None Include="README.md" />
     <None Include="TFTP_Root\Boot\apitest.0" />

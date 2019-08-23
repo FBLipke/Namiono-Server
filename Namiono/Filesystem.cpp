@@ -72,6 +72,19 @@ _SIZET FileRead(char* dst, _SIZET length, FILE* handle)
 	return 0;
 }
 
+
+bool WriteLeaseEntry(const std::string& filename, const std::string& ipaddress, const std::string& mac)
+{
+	FILE * fp = fopen(filename.c_str(),"wa");
+
+	// 192.168.1.10;00:11:22:33:44:55;
+
+	fprintf(fp, "%s;%s\n", ipaddress.c_str(), mac.c_str());
+	
+	fclose(fp);
+	return true;
+}
+
 _SIZET FileWrite(const std::string& filename, const char* src, _SIZET length)
 {
 	_SIZET retval = 0;

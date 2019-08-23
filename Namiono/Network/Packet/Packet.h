@@ -24,10 +24,10 @@ namespace Namiono
 		class Packet
 		{
 		public:
-			Packet(ServiceType* serviceType, const char* data, const _SIZET* length);
-			Packet(ServiceType* serviceType, Packet& packet, const _SIZET& length, const DHCP_MSGTYPE& msgType);
+			Packet(const ServiceType& serviceType, const char* data, const _SIZET* length);
+			Packet(const ServiceType& serviceType, Packet& packet, const _SIZET& length, const DHCP_MSGTYPE& msgType);
 			Packet() {};
-			Packet(ServiceType* serviceType, const _SIZET& length, const Packet_OPCode& opcode);
+			Packet(const ServiceType& serviceType, const _SIZET& length, const Packet_OPCode& opcode);
 
 			~Packet();
 			_SIZET Write(const void* data, const _SIZET& length, const _SIZET& position = 0);

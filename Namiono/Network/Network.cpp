@@ -19,8 +19,9 @@ namespace Namiono
 	{
 		_ULONG requestId = 0;
 		_USHORT id = 1;
-		std::vector<std::thread> servers;
+		std::vector<Server> servers;
 		std::vector<_IPADDR> addresses;
+		std::vector<std::thread>listenThreads;
 
 #ifdef _WIN32
 		bool Init_Winsock(_INT32 major, _INT32 minor)
@@ -50,89 +51,6 @@ namespace Namiono
 			return std::string(hname);
 		}
 
-		void add_server(_IPADDR address, _IPADDR gateway, _IPADDR netmask, const std::string& tftp_rootDir)
-		{
-			servers.emplace_back(Namiono::Network::__serverThread<sockaddr_in>,
-				DHCP_SERVER, AF_INET, false, address, gateway, netmask, 67, tftp_rootDir, Handle_Request<sockaddr_in>);
-
-			servers.emplace_back(Namiono::Network::__serverThread<sockaddr_in>,
-				BINL_SERVER, AF_INET, SETTINGS.MULTICAST_SUPPORT, address, netmask, gateway, 4011, tftp_rootDir, Handle_Request<sockaddr_in>);
-
-			servers.emplace_back(Namiono::Network::__serverThread<sockaddr_in>,
-				TFTP_SERVER, AF_INET, false, address, gateway, netmask, 69, tftp_rootDir, Handle_Request<sockaddr_in>);
-
-			if (SETTINGS.MULTICAST_SUPPORT)
-			{
-				servers.emplace_back(Namiono::Network::__serverThread<sockaddr_in>,
-					TFTP_SERVER, AF_INET, SETTINGS.MULTICAST_SUPPORT, address, gateway, netmask, SETTINGS.MTFTP_SPORT, tftp_rootDir, Handle_Request<sockaddr_in>);
-			}
-		}
-
-		bool Get_Interface_Addresses(const std::string& rootDir, std::function<void(_IPADDR, _IPADDR, _IPADDR, const std::string& rootDir)> cb)
-		{
-			_IPADDR address = 0;
-			_IPADDR gateway = 0;
-			_IPADDR ipMask = 0;
-#ifdef _WIN32
-			PIP_ADAPTER_INFO pAdapterInfo = nullptr;
-			PIP_ADAPTER_INFO pAdapter = nullptr;
-			_ULONG ulOutBufLen = 0;
-
-			if (GetAdaptersInfo(pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW)
-			{
-				free(pAdapterInfo);
-				pAdapterInfo = static_cast<IP_ADAPTER_INFO*>(malloc(ulOutBufLen));
-				if (pAdapterInfo == nullptr)
-					return false;
-			}
-
-			if (GetAdaptersInfo(pAdapterInfo, &ulOutBufLen) == NO_ERROR)
-			{
-				pAdapter = pAdapterInfo;
-				while (pAdapter)
-				{
-					address = inet_addr(pAdapter->IpAddressList.IpAddress.String);
-					gateway = inet_addr(pAdapter->GatewayList.IpAddress.String);
-					ipMask = inet_addr(pAdapter->IpAddressList.IpMask.String);
-
-					if (address != 0)
-						addresses.emplace_back(address);
-
-					cb(address, gateway, ipMask, rootDir);
-
-					pAdapter = pAdapter->Next;
-				}
-
-				pAdapter = nullptr;
-			}
-
-			if (pAdapterInfo)
-				free(pAdapterInfo);
-
-			pAdapterInfo = nullptr;
-#else
-			ifaddrs* ifap = nullptr, *ifa = nullptr;
-			getifaddrs(&ifap);
-			for (ifa = ifap; ifa; ifa = ifa->ifa_next)
-			{
-				if (ifa->ifa_addr && ifa->ifa_addr->sa_family==AF_INET)
-				{
-					sockaddr_in* sa = (struct sockaddr_in*) ifa->ifa_addr;
-					address = sa->sin_addr.s_addr;
-					addresses.emplace_back(address);
-					cb(address, gateway, ipMask, rootDir);				}
-			}
-
-			freeifaddrs(ifap);
-			ifap = nullptr;
-#endif
-
-
-
-			bool haveAddresses = addresses.size() != 0;
-			return haveAddresses;
-		}
-
 		void Bootstrap_Network(const std::string & tftp_rootDir)
 		{
 			printf("[I] Starting network...\n");
@@ -144,11 +62,31 @@ namespace Namiono
 				return;
 			}
 #endif
+			servers.emplace_back(&addresses, tftp_rootDir, Handle_Request);
 
-			if (Get_Interface_Addresses(tftp_rootDir, add_server))
+			for (_SIZET i = 0; i < servers.size(); i++)
 			{
-				for (std::thread& serverThread : servers)
-					serverThread.join();
+				servers.at(i).Init();
+			}
+
+			for (_SIZET i = 0; i < servers.size(); i++)
+			{
+				servers.at(i).Start();
+			}
+
+			for (_SIZET i = 0; i < servers.size(); i++)
+			{
+				servers.at(i).Listen(&listenThreads);
+			}
+
+			for (_SIZET i = 0; i < listenThreads.size(); i++)
+			{
+				listenThreads.at(i).join();
+			}
+
+			for (_SIZET i = 0; i < servers.size(); i++)
+			{
+				servers.at(i).Close();
 			}
 
 #ifdef _WIN32
@@ -160,11 +98,9 @@ namespace Namiono
 #endif
 		}
 
-		template<class S>
-		void Handle_Request(ServiceType * type, Server<S> * server,
-			Client<S> * client, const std::string & rootDir, Packet * packet)
+		void Handle_Request(ServiceType type, Server* server, int iface, Client* client, const std::string rootDir, Packet * packet)
 		{
-			switch (*type)
+			switch (type)
 			{
 			case BINL_SERVER:
 			case DHCP_SERVER:
@@ -200,7 +136,7 @@ namespace Namiono
 								{
 									if (packet->get_opcode() == BOOTREPLY)
 									{
-										Relay_Response_Packet(type, server, client, packet);
+										Relay_Response_Packet(&type, server, iface, client, packet);
 										return;
 									}
 								}
@@ -208,7 +144,7 @@ namespace Namiono
 								{
 									if (packet->get_opcode() == BOOTREQUEST)
 									{
-										Relay_Request_Packet(type, server, client, packet);
+										Relay_Request_Packet(&type, server, iface, client, packet);
 										return;
 									}
 								}
@@ -222,11 +158,11 @@ namespace Namiono
 						.Get_Value_As_Byte()))
 					{
 					case DHCP_MSGTYPE::DISCOVER:
-						Handle_DHCP_Discover(type, server, client, packet);
+						Handle_DHCP_Discover(&type, server, iface, client, packet);
 						break;
 					case DHCP_MSGTYPE::INFORM:
 					case DHCP_MSGTYPE::REQUEST:
-						Handle_DHCP_Request(type, server, client, packet);
+						Handle_DHCP_Request(&type, server, iface, client, packet);
 						break;
 					}
 
@@ -235,10 +171,10 @@ namespace Namiono
 						server->Remove_Client(client->Get_ID());
 					break;
 				case BINL_RQU:
-					Handle_RIS_RQU(type, server, client, packet, rootDir);
+					Handle_RIS_RQU(&type, server, iface, client, packet, rootDir);
 					break;
 				case BINL_NEG:
-					Handle_RIS_NEG(type, server, client, packet);
+					Handle_RIS_NEG(&type, server, iface, client, packet);
 					break;
 				default:
 					break;
@@ -249,13 +185,13 @@ namespace Namiono
 				switch (static_cast<TFTP_OPCODE>(packet->Get_Opcode()))
 				{
 				case Packet_OPCode::TFTP_RRQ:
-					Handle_TFTP_RRQ(type, server, client, rootDir, packet);
+					Handle_TFTP_RRQ(&type, server, iface, client, rootDir, packet);
 					break;
 				case Packet_OPCode::TFTP_ACK:
-					Handle_TFTP_ACK(type, server, client, packet);
+					Handle_TFTP_ACK(&type, server, iface, client, packet);
 					break;
 				case Packet_OPCode::TFTP_ERR:
-					Handle_TFTP_ERR(type, server, client, packet);
+					Handle_TFTP_ERR(&type, server, iface, client, packet);
 					break;
 				}
 
@@ -266,8 +202,7 @@ namespace Namiono
 			}
 		}
 
-		template<class S>
-		void Handle_Relayed_Packet(Server<S>* server, Packet* packet)
+		void Handle_Relayed_Packet(Server* server, int iface, Packet* packet)
 		{
 			if (packet->Has_DHCPOption(static_cast<_BYTE>(82)))
 			{
@@ -278,26 +213,32 @@ namespace Namiono
 			else
 			{
 				std::vector<DHCP_Option> relayOptions;
-				relayOptions.emplace_back(DHCP_Option(static_cast<_BYTE>(1), server->Get_ServerName()));
+				relayOptions.emplace_back(DHCP_Option(static_cast<_BYTE>(1), server->Get_Interface(iface)->Get_ServerName()));
 				relayOptions.emplace_back(DHCP_Option(static_cast<_BYTE>(2), packet->get_xid()));
 				
 				packet->Add_DHCPOption(DHCP_Option(82, relayOptions));
 			}
 		}
 
-		template<class S>
-		void Relay_Request_Packet(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet)
+		void Relay_Request_Packet(ServiceType * type, Server* server, int iface, Client* client, Packet * packet)
 		{
 			/* Client request */
 			client->dhcp->Set_State(CLIENTSTATE::DHCP_RELAY);
 			client->Set_Relay_Hint(inet_addr("10.20.0.1"), 67);
-			Handle_Relayed_Packet(server, packet);
+			Handle_Relayed_Packet(server, iface, packet);
 
 			std::string mac = Functions::MacAsString(&packet->Get_Buffer()[28],
 				static_cast<_SIZET>(packet->get_hwlength())).c_str();
 
-			printf("[I] Forwarding BOOTREQUEST from %s to 10.20.0.1...\n", mac.c_str());
+			/*
+				Store the mac in our cache on the incoming interface, so that we can later
+				identify the Interface from where we got the request.
+			*/
 
+			if (!server->Get_Interface(iface)->Has_ARPEntry(mac))
+				server->Get_Interface(iface)->Add_ARPEntry(mac);
+			printf("[I] Forwarding BOOTREQUEST from %s (on Interface %d) to 10.20.0.1...\n", mac.c_str(), iface);
+			
 			/*
 			Put the IP Address from the interface which received the request as giaddr field...
 			The Upstream DHCP server will send his response Packet back to this giaddr address...
@@ -305,38 +246,41 @@ namespace Namiono
 			We need also the giaddr to identify the interface... when receiving responses...
 			*/
 			
-			packet->set_relayIP(server->Get_IPAddress());
+			packet->set_relayIP(server->Get_Interface(iface)->Get_IPAddress());
 			packet->set_flags(DHCP_FLAGS::Unicast);
 			packet->increase_hops(1);
 			client->response = packet;
 			client->response->Trim();
 
-			server->Send(client);
+			server->Send(iface, client);
 		}
 
-		template<class S>
-		void Relay_Response_Packet(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet)
+		void Relay_Response_Packet(ServiceType * type, Server* server, int iface, Client* client, Packet * packet)
 		{
 			/* Server response */
 			client->response = packet;
 			client->Set_Client_Hint(INADDR_BROADCAST, 68);
 
 			packet->set_flags(DHCP_FLAGS::Broadcast);
-			Handle_Relayed_Packet(server, packet);
+			Handle_Relayed_Packet(server, iface, packet);
 			std::string mac = Functions::MacAsString(&packet->Get_Buffer()[28],
 				static_cast<_SIZET>(packet->get_hwlength())).c_str();
 
+			int _outgoing_iface = server->Get_Interface_by_Mac(mac);
 
-			printf("[I] Forwarding BOOTREPLY to %s...\n", mac.c_str());
+			/* Send it out to the receiving Interface ... anyway ... */
+			if (_outgoing_iface == -1)
+				_outgoing_iface = iface;
+
+			printf("[I] Forwarding BOOTREPLY to %s via Interface %d...\n", mac.c_str(), _outgoing_iface);
 
 			client->response->Trim();
 
-			server->Send(client);
+			server->Send(_outgoing_iface, client);
 			client->dhcp->Set_State(CLIENTSTATE::DHCP_DONE);
 		}
 
-		template<class S>
-		void Handle_RIS_RQU(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet, const std::string& rootDir)
+		void Handle_RIS_RQU(ServiceType * type, Server* server, int iface, Client* client, Packet * packet, const std::string& rootDir)
 		{
 			std::string oscfile = Combine(rootDir, Combine(std::string("OSChooser"), Combine(std::string("English"),
 				packet->get_osc_filename(rootDir).c_str())));
@@ -359,15 +303,12 @@ namespace Namiono
 						osc_content = std::string(_osc_content);
 						osc_content = Functions::Replace(osc_content, "%MACHINENAME%", "Client01");
 
-						client->response = new Packet(type, osc_content.size() + 36, BINL_RSU);
+						client->response = new Packet(*type, osc_content.size() + 36, BINL_RSU);
 						client->response->CopyFrom(*packet, 8, 8, 28);
 						client->response->Write(osc_content.c_str(), osc_content.size(), 28);
 						client->response->Commit();
 
-						if (server->Send(client) == SOCKET_ERROR)
-						{
-							print_Error("Failed to send BINL Packet!\n");
-						}
+						server->Send(iface, client);
 
 						delete client->response;
 						client->response = nullptr;
@@ -385,18 +326,15 @@ namespace Namiono
 			}
 		}
 
-		template<class S>
-		void Handle_RIS_NEG(ServiceType * type, Server<S>* server, Client<S>* client, Packet * packet)
+		void Handle_RIS_NEG(ServiceType * type, Server* server, int iface, Client* client, Packet * packet)
 		{
 		}
 
-		template<class S>
-		void Handle_RIS_AUT(ServiceType * type, Server<S>* server, Client<S>* client, Packet * packet)
+		void Handle_RIS_AUT(ServiceType * type, Server* server, int iface, Client* client, Packet * packet)
 		{
 		}
 
-		template<class S>
-		void Handle_IPXE_Options(Server<S> * server, Client<S> * client, Packet * response)
+		void Handle_IPXE_Options(Server* server, int iface, Client* client, Packet * response)
 		{
 			std::vector<DHCP_Option> options;
 			response->Get_DHCPOption(static_cast<_BYTE>(175)).Get_SubOptions(options);
@@ -419,8 +357,7 @@ namespace Namiono
 			}
 		}
 
-		template<class S>
-		void Handle_WDS_Options(Server<S> * server, Client<S> * client)
+		void Handle_WDS_Options(Server* server, int iface, Client* client)
 		{
 			// WDS Option -> Used by WDSNBP
 			std::vector<DHCP_Option>* wdsOptions = new std::vector<DHCP_Option>();
@@ -432,7 +369,7 @@ namespace Namiono
 
 			if (client->dhcp->wds->GetNextAction() == REFERRAL)
 			{
-				client->dhcp->wds->SetReferralServer(server->Get_IPAddress());
+				client->dhcp->wds->SetReferralServer(server->Get_Interface(iface)->Get_IPAddress());
 				wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_REFERRAL_SERVER), client->dhcp->wds->GetReferalServer());
 				wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_ALLOW_SERVER_SELECTION), static_cast<_BYTE>(1));
 			}
@@ -453,12 +390,12 @@ namespace Namiono
 
 		}
 
-		template<class S>
-		void GenerateBootServers(Client<S> * client)
+		int GenerateBootServers(Client* client)
 		{
 			client->dhcp->Set_State(DHCP_INIT);
 			client->dhcp->rbcp->Clear_BootServers();
-			client->dhcp->rbcp->Add_BootServer(Get_Hostname(), addresses);
+			if (addresses.size() != 0)
+				client->dhcp->rbcp->Add_BootServer(Get_Hostname(), addresses);
 
 			FILE* fil = fopen("Config/servers.txt", "r");
 
@@ -480,7 +417,7 @@ namespace Namiono
 						std::string _addrline = std::string(addr);
 						std::vector<std::string> _addrs = Functions::Split(_addrline, std::string(","));
 
-						for (size_t i = 0; i < _addrs.size(); i++)
+						for (_SIZET i = 0; i < _addrs.size(); i++)
 						{
 							addrs.emplace_back(inet_addr(_addrs.at(i).c_str()));
 						}
@@ -491,10 +428,11 @@ namespace Namiono
 
 				fclose(fil);
 			}
+
+			return 0;
 		}
 
-		template<class S>
-		void Handle_DHCP_Discover(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet)
+		void Handle_DHCP_Discover(ServiceType * type, Server* server, int iface, Client* client, Packet * packet)
 		{
 			switch (client->dhcp->Get_Vendor())
 			{
@@ -517,31 +455,27 @@ namespace Namiono
 					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_MTFTP_SERVER_PORT), SETTINGS.MTFTP_SPORT);
 					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_MTFTP_CLIENT_PORT), SETTINGS.MTFTP_CPORT);
 
-					/* LCM related Options
 					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_DOMAIN), SETTINGS.NBDOMAIN);
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_SERVER), server->Get_ServerName());
+					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_SERVER), server->Get_Interface(iface)->Get_ServerName());
 					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_DISCOVERY), static_cast<_BYTE>(1));
 					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_CONFIGURED), static_cast<_BYTE>(1));
 					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_VERSION), BS32(static_cast<_UINT>(1)));
 					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_SERIALNO), std::string("Namiono - Server 0.5"));
- */
 				}
 
-				client->response = new Packet(type, *packet, 1024, DHCP_MSGTYPE::OFFER);
+				client->response = new Packet(*type, *packet, 1024, DHCP_MSGTYPE::OFFER);
 				if (client->dhcp->vendorOpts->size() != 0)
 					client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(43),
 						*client->dhcp->vendorOpts));
 
-				client->response->set_servername(server->Get_ServerName());
-				client->response->set_nextIP(server->Get_IPAddress());
+				client->response->set_servername(server->Get_Interface(iface)->Get_ServerName());
+				client->response->set_nextIP(server->Get_Interface(iface)->Get_IPAddress());
 
-				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(1), static_cast<_UINT>(server->Get_NetMask())));
-				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(3), static_cast<_UINT>(server->Get_Gateway())));
 				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(53), static_cast<_BYTE>(OFFER)));
-				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54), static_cast<_UINT>(client->dhcp->GetNextServer())));
+				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54), static_cast<_ULONG>(client->dhcp->GetNextServer())));
 				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(60), client->dhcp->Get_VendorString()));
 
-				Handle_WDS_Options(server, client);
+				Handle_WDS_Options(server, iface, client);
 				break;
 			default:
 				return;
@@ -557,10 +491,7 @@ namespace Namiono
 			sleep(static_cast<_BYTE>((1 + SETTINGS.SUBNETDELAY)));
 #endif
 
-			int retval = server->Send(client);
-			if (retval == SOCKET_ERROR)
-				printf("[E] Error while sending %s packet! (%s)\n",
-					client->Get_TypeString().c_str(), strerror(errno));
+			server->Send(iface, client);
 
 			delete client->response;
 			client->response = nullptr;
@@ -568,14 +499,13 @@ namespace Namiono
 			client->dhcp->Set_State(DHCP_DONE);
 		}
 
-		template<class S>
-		void Handle_DHCP_Request(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet)
+		void Handle_DHCP_Request(ServiceType * type, Server* server, int iface, Client* client, Packet * packet)
 		{
 			std::vector<DHCP_Option> options;
 			std::string _serverName = "";
 			_IPADDR _bootServer = 0;
 
-			client->response = new Packet(type, *packet, 1024, DHCP_MSGTYPE::ACK);
+			client->response = new Packet(*type, *packet, 1024, DHCP_MSGTYPE::ACK);
 			client->dhcp->SetIsWDSRequest(packet->Has_DHCPOption(250));
 
 			switch (client->dhcp->Get_Vendor())
@@ -591,7 +521,7 @@ namespace Namiono
 							.Get_Value_As_String().c_str(), "gPXE", 4))
 					{
 						client->dhcp->SetIsIPXERequest(true);
-						Handle_IPXE_Options(server, client, packet);
+						Handle_IPXE_Options(server, iface, client, packet);
 					}
 				}
 
@@ -617,7 +547,7 @@ namespace Namiono
 
 				}
 
-				Handle_WDS_Options(server, client);
+				Handle_WDS_Options(server, iface, client);
 
 				if (client->dhcp->Get_State() == DHCP_WAITING)
 					return;
@@ -647,7 +577,7 @@ namespace Namiono
 					}
 				}
 
-				_serverName = server->Get_ServerName();
+				_serverName = server->Get_Interface(iface)->Get_ServerName();
 				_bootServer = inet_addr(client->_socketID.c_str());
 
 				if (client->dhcp->rbcp->Get_Item() != 0)
@@ -688,7 +618,7 @@ namespace Namiono
 						printf("[D] Redirecting client %s to Server %s (%s)...\n", client->Get_ID().c_str(), Functions::AddressStr(_bootServer).c_str(),
 							_serverName.c_str());
 
-						if (server->Get_Port() == 4011)
+						if (server->Get_Interface(iface)->Get_Port() == 4011)
 						{
 							client->response->set_yourIP(client->response->get_clientIP());
 							client->response->set_clientIP(0);
@@ -706,8 +636,6 @@ namespace Namiono
 				client->response->Add_DHCPOption(DHCP_Option(66, _serverName));
 				client->response->set_servername(_serverName);
 
-				client->response->Add_DHCPOption(DHCP_Option(1, server->Get_NetMask()));
-				client->response->Add_DHCPOption(DHCP_Option(3, server->Get_Gateway()));
 				client->response->Add_DHCPOption(DHCP_Option(54, client->dhcp->GetNextServer()));
 				client->response->Add_DHCPOption(DHCP_Option(150, client->dhcp->GetNextServer()));
 
@@ -734,17 +662,13 @@ namespace Namiono
 			sleep(static_cast<_BYTE>((1 + SETTINGS.SUBNETDELAY)));
 #endif
 
-			int retval = server->Send(client);
-			if (retval == SOCKET_ERROR)
-				printf("Error while sending %s packet! (%s)\n",
-					client->Get_TypeString().c_str(), strerror(errno));
+			server->Send(iface,client);
 
 			delete client->response;
 			client->response = nullptr;
 		}
 
-		template<class S>
-		void GenerateBootMenue(Client<S> * client)
+		void GenerateBootMenue(Client* client)
 		{
 			_SIZET offset = 0;
 			char menubuffer[1024];
@@ -812,8 +736,7 @@ namespace Namiono
 			promptbuffer = nullptr;
 		}
 
-		template<class S>
-		void Create_BootServer_List(Client<S> * client)
+		void Create_BootServer_List(Client* client)
 		{
 			_BYTE offset = 0;
 			_BYTE ipcount = 0;
@@ -850,8 +773,7 @@ namespace Namiono
 			serverbuffer = nullptr;
 		}
 
-		template<class S>
-		void Handle_TFTP_RRQ(ServiceType* type, Server<S>* server, Client<S>* client, const std::string& rootDir, Packet* packet)
+		void Handle_TFTP_RRQ(ServiceType* type, Server* server, int iface, Client* client, const std::string& rootDir, Packet* packet)
 		{
 			client->tftp = new TFTP_CLIENT();
 			client->tftp->SetFilename(Combine(rootDir, std::string(packet->Get_TFTPOption("File").Value)));
@@ -863,7 +785,7 @@ namespace Namiono
 
 				printf("[E] File not found: %s\n", client->tftp->GetFilename().c_str());
 
-				client->response = new Packet(type, static_cast<_SIZET>((client->tftp->
+				client->response = new Packet(*type, static_cast<_SIZET>((client->tftp->
 					GetFilename().size() + 1) + 4), Packet_OPCode::TFTP_ERR);
 
 				client->response->Write(static_cast<_USHORT>(BS16(5)), 0);
@@ -874,13 +796,7 @@ namespace Namiono
 
 				client->response->Commit();
 
-				int retval = server->Send(client);
-
-				if (retval == SOCKET_ERROR)
-				{
-					printf("[E] Error while sending %s Packet!\n", client->Get_TypeString().c_str());
-
-				}
+				server->Send(iface, client);
 
 				client->tftp->Set_State(TFTP_ERROR);
 
@@ -894,7 +810,7 @@ namespace Namiono
 
 			if (client->tftp->OpenFile(client->tftp->GetFilename()))
 			{
-				client->response = new Packet(type, 1024, Packet_OPCode::TFTP_OACK);
+				client->response = new Packet(*type, 1024, Packet_OPCode::TFTP_OACK);
 
 				if (packet->Has_TFTPOption("tsize"))
 					client->response->Add_TFTPOption(TFTP_Option("tsize", Functions::AsString(client->tftp->GetBytesToRead())));
@@ -907,14 +823,8 @@ namespace Namiono
 				client->response->Add_TFTPOption(TFTP_Option("blksize", Functions::AsString(client->tftp->GetBlockSize())));
 
 				client->response->Commit();
-				int retval = server->Send(client);
-				if (retval == SOCKET_ERROR)
-				{
-					printf("[E] Error while sending %s Packet!\n", client->Get_TypeString().c_str());
-					client->tftp->Set_State(TFTP_ERROR);
-					return;
-				}
-
+				server->Send(iface, client);
+				
 				delete client->response;
 				client->response = nullptr;
 
@@ -926,8 +836,7 @@ namespace Namiono
 
 		}
 
-		template<class S>
-		void Handle_TFTP_ERR(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet)
+		void Handle_TFTP_ERR(ServiceType * type, Server* server, int iface, Client* client, Packet * packet)
 		{
 			_SIZET len = packet->get_Length() - 3;
 			char* _message = new char[len];
@@ -947,8 +856,7 @@ namespace Namiono
 				client->tftp->Set_State(TFTP_ERROR);
 		}
 
-		template<class S>
-		void Handle_TFTP_ACK(ServiceType * type, Server<S> * server, Client<S> * client, Packet * packet)
+		void Handle_TFTP_ACK(ServiceType * type, Server* server, int iface, Client* client, Packet * packet)
 		{
 			if (client->tftp->Get_State() != TFTP_DOWNLOAD)
 			{
@@ -984,13 +892,13 @@ namespace Namiono
 				client->tftp->FileSeek();
 				client->tftp->SetCurrentBlock(client->tftp->GetCurrentBlock() + 1);
 
-				client->response = new Packet(type, static_cast<_SIZET>(4 + chunk), Packet_OPCode::TFTP_DAT);
+				client->response = new Packet(*type, static_cast<_SIZET>(4 + chunk), Packet_OPCode::TFTP_DAT);
 				client->response->Set_Block(client->tftp->GetCurrentBlock());
 
 				client->tftp->SetBytesRead(static_cast<long>(fread(&client->response->Get_Buffer()[4], 1, chunk, client->tftp->Get_FileHandle())));
 				client->response->Commit();
 
-				server->Send(client);
+				server->Send(iface, client);
 
 				delete client->response;
 				client->response = nullptr;
