@@ -11,7 +11,7 @@ env:
   global:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
    #   via the "travis encrypt" command using the project repo's public key
-   - secure: "CJWhPy7PVwlxVG4x8wX7GqwomwgygQA28CIdNzG3a//4t+r2HEsCkSRSK+9EDpqbtFRKR6Zmlmo4NJrLkriZNSX+zgzRDa7G+fetu7Iw8B1jUWnEAKEZJMzV9wKeJQjr803SukN01XRhkOAccyRoKKyQWhqdo4jmUXEnM8MNscAYdoztPykwBOqCYsx11ulzEyIO/KfUETtyil4mdOq5b8eSo45VGYHQTH+urjwEygdtZJxi7+QY74dCPDwVbrPAgE0KVobJZTm54WeDRaQZaBLFdjKh0MH67tUTXtM2m6csb2RSvOgpuB9yFEaSvhVMo/WUU+tbA+t7WS5fkyidNQ26+/4rT9UU54RYR7ZUcIy8D6Bn9hpG+M4nHul7uj4dXECkpITcMTohUVA0s3mAA4pGL0FXql/I0T6sxkxMb1njnZaD2qiO9TA3OrHTQbLclFBzjBk8btXv7l61UlzCocebpJaL6qjBvmvl4vTV/HJBOiyVHUAqYqUu7OT1zicCRYDgd7ZZrbKEud6/zv91wYrydwRIE9A4hIslm+1JXvttuduvALzVkHr0K1CDVn5gPbPDyUj5tUzF6p1iZUEoGgEGlJl0jD/cP02sUL6jxmE8r1jT2vR2iaiyca6XR42qOjKXFqhrWQDyijAH0eFywL6obe2cpQ8gaRj7gvxYcx0="
+   - secure: "GRmaY+5UArQHGeF2vmqwu0U8svzJA+x+fbMNxlA4MDnsHQuKmmfsrAWCdC4jiP6BmyIj4jKAQcFzPB4plZUt5yuTv/L6SfX6sOJDBaakmtXL3TWIhPx8MRUu/TvYq37OiObJWb04IollLra6gBKxQxzrdKQzzi1fhfJOodX8Huf2CNnyFAJ9XpuXLFzWrYXp94gqh2CoUdHUaNEpJdC9kezq1YzzWOgAmd+wiNYZmpGWFssKIodNjiEOshqaxDWYrmP0Q1QniUl9OqLSnFsRJMHGD4/CF01cSSCb1ZAB/0g+7APNqE4ZS+vrzcU97PJZbpiqZDlIjcwm9DaVaj6a7UrWSmUjl/DrnF19MnMoVZ+qgu5U5fPN3sls6UnROHXjOpYINNZpv2PKs/F6uBoJgSpjfc3zAplfzbh4f/V5+U625Kk/SeGXg1abRqH5SVzu/IMiqF9c8II9cfvSq3UtPeU+Efm9KIzn6gD4P0wmU/IE+TA273F42uF81i6xEW9GrjuQYRxxoTNWqFGebjDcuUWGrqH/7eATLgLWk1IBXqESdsMZzfUS9XQt2TqCazMxCy1izA5UGyXgU4GW0gn7LPQ6QeWux79bE8kqzwIIC0UtvHSC5olCN4LwINETmzJXyOZr/foXWfWS0PTinw6ZdpNYOpweKY20TGDki+OmDyc="
 
 before_install:
   - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
@@ -20,7 +20,8 @@ addons:
   coverity_scan:
     project:
       name: "FBLipke/Namiono-Server"
-      description: ""
+      description: "Network Boot Daemon"
     notification_email: contact-bln@fblipke.de
+    build_command_prepend: "make"
     build_command: "make"
     branch_pattern: master
