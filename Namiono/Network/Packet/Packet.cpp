@@ -191,7 +191,7 @@ namespace Namiono
 
 			if (packet.get_xid() == 0)
 			{
-				printf("[W] DHCP client (%s): Invalid Transaction ID (%d)!\n",
+				printf("[W] DHCP client (%s): Invalid Transaction ID (%ld)!\n",
 					Functions::AddressStr(packet.get_clientIP()).c_str(), packet.get_xid());
 			}
 

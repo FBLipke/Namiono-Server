@@ -39,7 +39,7 @@ std::string Functions::MacAsString(char* macBuffer, _SIZET length)
 	ClearBuffer(out, sizeof(out));
 	std::string mac = "";
 
-	sprintf(out, "%02X:%02X:%02X:%02X:%02X:%02X\0",
+	sprintf(out, "%02X:%02X:%02X:%02X:%02X:%02X",
 		(_BYTE)macBuffer[0],
 		(_BYTE)macBuffer[1],
 		(_BYTE)macBuffer[2],

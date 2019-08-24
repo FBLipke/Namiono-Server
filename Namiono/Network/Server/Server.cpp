@@ -80,13 +80,13 @@ namespace Namiono
 			getifaddrs(&ifap);
 			for (ifa = ifap; ifa; ifa = ifa->ifa_next)
 			{
-				if (ifa->ifa_addr && (ifa->ifa_addr->sa_family == AF_INET && ifa->ifa_addr->sa_family != AF_LOOPBACK))
+				if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET)
 				{
 					sockaddr_in* sa = (struct sockaddr_in*) ifa->ifa_addr;
 					address = sa->sin_addr.s_addr;
 					addrList->emplace_back(address);
 
-					for (_INT32 i = 0; i < ports.size(); i++)
+					for (_SIZET i = 0; i < _ports.size(); i++)
 					{
 						Interfaces.emplace_back(address, static_cast<_USHORT>(Interfaces.size()), _ports.at(i));
 					}
@@ -163,9 +163,6 @@ namespace Namiono
 					{
 						if (FD_ISSET(srv->Get_Interfaces().at(iE).Get_Socket(), &copy_of_read))
 						{
-							if (!copy_of_read.fd_array[iS] == srv->Get_Interfaces().at(iE).Get_Socket())
-								continue;
-
 							FD_CLR(srv->Get_Interfaces().at(iE).Get_Socket(), &copy_of_read);
 
 							socklen_t remote_len = 0;
