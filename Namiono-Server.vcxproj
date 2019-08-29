@@ -28,7 +28,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -124,30 +124,38 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Namiono\Services\DHCP\DHCP_Functions.h" />
     <ClInclude Include="Environment\Defines.h" />
     <ClInclude Include="Environment\environment.h" />
     <ClInclude Include="Environment\environment_linux.h" />
     <ClInclude Include="Environment\environment_windows.h" />
-    <ClInclude Include="Environment\Settings.h" />
-    <ClInclude Include="Namiono\Filesystem.h" />
-    <ClInclude Include="Namiono\Functions.h" />
+    <ClInclude Include="Namiono\Common\Filesystem.h" />
+    <ClInclude Include="Namiono\Common\Functions.h" />
     <ClInclude Include="Namiono\Namiono.h" />
     <ClInclude Include="Namiono\Network\Client\Client.h" />
-    <ClInclude Include="Namiono\Network\Network.h" />
     <ClInclude Include="Namiono\Network\Packet\Packet.h" />
     <ClInclude Include="Namiono\Network\Server\Interface.h" />
     <ClInclude Include="Namiono\Network\Server\Server.h" />
+    <ClInclude Include="Namiono\Services\DHCP\DHCP_Service.h" />
+    <ClInclude Include="Namiono\Services\Service.h" />
+    <ClInclude Include="Namiono\Services\TFTP_Service.h" />
+    <ClInclude Include="Namiono\Network\Network.h" />
+    <ClInclude Include="Namiono\Services\DHCP\ProxyDHCP_Service.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Namiono\Services\DHCP\DHCP_Functions.cpp" />
     <ClCompile Include="Environment\environment.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Namiono\Functions.cpp" />
+    <ClCompile Include="Namiono\Common\Functions.cpp" />
     <ClCompile Include="Namiono\Namiono.cpp" />
-    <ClCompile Include="Namiono\Network\Network.cpp" />
     <ClCompile Include="Namiono\Network\Packet\Packet.cpp" />
-    <ClCompile Include="Namiono\Filesystem.cpp" />
+    <ClCompile Include="Namiono\Common\Filesystem.cpp" />
     <ClCompile Include="Namiono\Network\Server\Interface.cpp" />
     <ClCompile Include="Namiono\Network\Server\Server.cpp" />
+    <ClCompile Include="Namiono\Services\DHCP\DHCP_Service.cpp" />
+    <ClCompile Include="Namiono\Services\TFTP_Service.cpp" />
+    <ClCompile Include="Namiono\Network\Network.cpp" />
+    <ClCompile Include="Namiono\Services\DHCP\ProxyDHCP_Service.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />

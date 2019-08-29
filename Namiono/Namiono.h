@@ -19,14 +19,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <Environment/environment.h>
 #include <Environment/Defines.h>
+#include <Namiono/Common/Functions.h>
+#include <Namiono/Common/Filesystem.h>
 
-#include <Namiono/Functions.h>
-#include <Namiono/Filesystem.h>
+using namespace Namiono::Common;
+
+#include <Namiono/Network/Packet/Packet.h>
+#include <Namiono/Network/Client/Client.h>
+#include <Namiono/Network/Server/Interface.h>
+#include <Namiono/Network/Server/Server.h>
+
+#include <Namiono/Services/Service.h>
+
+#include <Namiono/Services/DHCP/DHCP_Functions.h>
+#include <Namiono/Services/DHCP/DHCP_Service.h>
+#include <Namiono/Services/DHCP/ProxyDHCP_Service.h>
+
+#include <Namiono/Services/TFTP_Service.h>
+#include <Namiono/Network/Network.h>
 
 namespace Namiono
 {
-	void Bootstrap();
+    void Bootstrap();
 }
-
-#include <Namiono/Network/Network.h>
 #endif

@@ -90,19 +90,9 @@ namespace Namiono
 				return this->_hint.sin_port;
 			}
 
-			std::string Get_TypeString() const
+			ServiceType Get_ServiceType() const
 			{
-				switch (this->type)
-				{
-				case BINL_SERVER:
-					return std::string("BINL");
-				case DHCP_SERVER:
-					return std::string("DHCP");
-				case TFTP_SERVER:
-					return std::string("TFTP");
-				}
-
-				return std::string("Unknown");
+				return this->type;
 			}
 
 			sockaddr_in& Get_Client_Hint()

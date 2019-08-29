@@ -22,12 +22,58 @@ namespace Namiono
 		{
 
 		}
-
-		Server::Server(std::vector<_IPADDR>* addrList, const std::string& rootDir,
-			std::function<void(ServiceType, Server*, int, Client*, std::string, Packet*)> cb)
+#ifndef _WIN32
+		int GetDefaultGw(_IPADDR& gw)
 		{
-			this->rootDir = rootDir;
+			FILE *f;
+			char line[100], *p, *c, *g, *saveptr;
+			int nRet = 1;
+
+			f = fopen("/proc/net/route", "r");
+
+			while (fgets(line, 100, f))
+			{
+				p = strtok_r(line, " \t", &saveptr);
+
+				c = strtok_r(NULL, " \t", &saveptr);
+				g = strtok_r(NULL, " \t", &saveptr);
+
+				if (p != NULL && c != NULL)
+				{
+					if (strcmp(c, "00000000") == 0)
+					{
+
+						//printf("Default interface is : %s \n" , p);
+						if (g)
+						{
+							printf("[D] P: %s\n", p);
+							char *pEnd;
+							int ng = strtol(g, &pEnd, 16);
+							//ng=ntohl(ng);
+							struct in_addr addr;
+							addr.s_addr = ng;
+							gw = addr.s_addr;
+							nRet = 0;
+						}
+						break;
+					}
+				}
+			}
+
+			fclose(f);
+			return nRet;
+		}
+#endif
+
+		Server::Server(std::vector<_IPADDR>* addrList, std::function<void(ServiceType, Server*, int, Client*, Packet*)> cb)
+		{
 			_IPADDR address = 0;
+			_IPADDR netmask = 0;
+			_IPADDR gateway = 0;
+			std::string _name = "";
+
+			int index = 0;
+
 			this->callback = cb;
 
 			std::vector<_USHORT> _ports;
@@ -57,12 +103,19 @@ namespace Namiono
 				pAdapter = pAdapterInfo;
 				while (pAdapter)
 				{
+					index = pAdapter->ComboIndex;
+					_name = std::string(pAdapter->AdapterName);
+
 					address = inet_addr(pAdapter->IpAddressList.IpAddress.String);
+					netmask = inet_addr(pAdapter->IpAddressList.IpMask.String);
+					gateway = inet_addr(pAdapter->GatewayList.IpAddress.String);
+
 					addrList->emplace_back(address);
 
 					for (_SIZET i = 0; i < _ports.size(); i++)
 					{
-						Interfaces.emplace_back(address, static_cast<_USHORT>(Interfaces.size()), _ports.at(i));
+						Interfaces.emplace_back(_name, index, address, netmask, gateway,
+							static_cast<_USHORT>(Interfaces.size()), _ports.at(i));
 					}
 
 					pAdapter = pAdapter->Next;
@@ -82,13 +135,22 @@ namespace Namiono
 			{
 				if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET)
 				{
-					sockaddr_in* sa = (struct sockaddr_in*) ifa->ifa_addr;
-					address = sa->sin_addr.s_addr;
+					index = if_nametoindex(ifa->ifa_name);
+					_name = std::string(ifa->ifa_name);
+					address = ((struct sockaddr_in*)ifa->ifa_addr)->sin_addr.s_addr;
+					netmask = ((struct sockaddr_in*)ifa->ifa_netmask)->sin_addr.s_addr;
+
+					GetDefaultGw(gateway);
+
+					if (address == inet_addr("127.0.0.1"))
+						continue;
+
 					addrList->emplace_back(address);
 
 					for (_SIZET i = 0; i < _ports.size(); i++)
 					{
-						Interfaces.emplace_back(address, static_cast<_USHORT>(Interfaces.size()), _ports.at(i));
+						Interfaces.emplace_back(_name, index, address, netmask, gateway,
+							static_cast<_USHORT>(Interfaces.size()), _ports.at(i));
 					}
 				}
 			}
@@ -139,33 +201,51 @@ namespace Namiono
 
 		void __Listen(Server* srv)
 		{
+#ifdef _WIN32
 			timeval time;
-		
+#else
+			timespec time;
+#endif                        
 			FD_ZERO(&srv->Get_Read_Descriptors());
 
-			for (_SIZET i = 0; i < srv->Get_Interfaces().size(); i++)
-				FD_SET(srv->Get_Interfaces().at(i).Get_Socket(), &srv->Get_Read_Descriptors());
+			for (Iface & iface : srv->Get_Interfaces())
+			{
+				printf("[I] Listening on [%d] %s:%d\n", iface.Get_Id(), Functions::AddressStr(iface.Get_IPAddress()).c_str(),
+					iface.Get_Port());
+
+				FD_SET(iface.Get_Socket(), &srv->Get_Read_Descriptors());
+			}
 
 			fd_set copy_of_read = srv->Get_Read_Descriptors();
 
 			while (srv->Is_Running())
 			{
 				time.tv_sec = 0;
-				time.tv_usec = 2;
-
+#ifdef _WIN32
+				time.tv_usec = 1;
+#else
+				time.tv_nsec = 1;
+#endif
 				copy_of_read = srv->Get_Read_Descriptors();
 
-				const _INT32 count = select(static_cast<_INT32>(srv->Get_Interfaces().size() + 1), &copy_of_read, nullptr, nullptr, &time);
+				_INT32 count = _select(srv->Get_Interfaces().size() + 1, &copy_of_read, nullptr, nullptr, &time);
+
+				if (count == SOCKET_ERROR)
+				{
+					printf("[E] Select() : %s\n", _GetLastError);
+					break;
+				}
+
+				bool handled = false;
 
 				for (_INT32 iS = 0; iS < count; iS++)
 				{
-					for (_SIZET iE = 0; iE < srv->Get_Interfaces().size(); iE++)
+					for (Iface & iface : srv->Get_Interfaces())
 					{
-						if (FD_ISSET(srv->Get_Interfaces().at(iE).Get_Socket(), &copy_of_read))
+						if (FD_ISSET(iface.Get_Socket(), &copy_of_read))
 						{
-							FD_CLR(srv->Get_Interfaces().at(iE).Get_Socket(), &copy_of_read);
+							FD_CLR(iface.Get_Socket(), &copy_of_read);
 
-							socklen_t remote_len = 0;
 							sockaddr_in remote;
 							ClearBuffer(&remote, sizeof remote);
 
@@ -173,8 +253,8 @@ namespace Namiono
 							ClearBuffer(buffer, 16385);
 
 							_SIZET bytes = SOCKET_ERROR;
-							remote_len = sizeof remote;
-							bytes = recvfrom(srv->Get_Interfaces().at(iE).Get_Socket(), buffer, 16385, 0,
+							socklen_t remote_len = sizeof remote;
+							bytes = recvfrom(iface.Get_Socket(), buffer, 16385, 0,
 								reinterpret_cast<struct sockaddr*>(&remote), &remote_len);
 
 							if (bytes == SOCKET_ERROR)
@@ -185,11 +265,13 @@ namespace Namiono
 
 							ServiceType t;
 
-							switch (srv->Get_Interface(iE)->Get_Port())
+							switch (iface.Get_Port())
 							{
 							case 67:
-							case 4011:
 								t = DHCP_SERVER;
+								break;
+							case 4011:
+								t = BINL_SERVER;
 								break;
 							case 69:
 								t = TFTP_SERVER;
@@ -198,29 +280,43 @@ namespace Namiono
 								break;
 							}
 							Packet* request = new Packet(t, buffer, &bytes);
-							srv->callback(t, srv, srv->Get_Interfaces().at(iE).Get_Id(),
-								srv->Add_Client(t, remote), srv->Get_TFTP_Directory(), request);
+							srv->callback(t, srv, iface.Get_Id(), srv->Add_Client(t, remote), request);
 							delete[] buffer;
 							buffer = nullptr;
 
 							delete request;
 							request = nullptr;
+							break;
 						}
 					}
 				}
 			}
 		}
 
-		int Server::Get_Interface_by_Mac(const std::string& mac)
+		int Server::Get_Interface_by_Address(const _IPADDR& address)
 		{
-			for (_SIZET i = 0; i < Interfaces.size(); i++)
+			for (Iface & iface : Get_Interfaces())
 			{
-				if (Interfaces.at(i).Has_ARPEntry(mac))
+				const _IPADDR ifaceIP = iface.Get_IPAddress();
+				if (memcmp(&address, &ifaceIP, sizeof(_IPADDR)) == 0)
 				{
-#ifdef _DEBUG
-					printf("[D] MAC Entry found at Interface %d\n", Interfaces.at(i).Get_Id());
-#endif
-					return Interfaces.at(i).Get_Id();
+					return iface.Get_Id();
+				}
+			}
+
+			return -1;
+		}
+
+		int Server::Get_Interface_by_Mac(const std::string& mac, const _IPADDR& relayIP)
+		{
+			for (Iface & iface : Get_Interfaces())
+			{
+				if (iface.Has_ARPEntry(mac))
+				{
+					if (Functions::CompareIPAddress(relayIP, iface.Get_IPAddress(), 4) == 0)
+					{
+						return iface.Get_Id();
+					}
 				}
 			}
 
@@ -229,20 +325,36 @@ namespace Namiono
 
 		void Server::Send(int iface, Client* client)
 		{
-			switch (client->dhcp->Get_State())
+			switch (client->Get_ServiceType())
 			{
-			case DHCP_RELAY:
-				this->Get_Interfaces().at(iface).Send(client->Get_Relay_Hint(), client->response);
+			case BINL_SERVER:
+			case DHCP_SERVER:
+				switch (client->dhcp->Get_State())
+				{
+				case DHCP_RELAY:
+					this->Get_Interface(iface)->Send(client->Get_Relay_Hint(), client->response);
+					break;
+				default:
+					this->Get_Interface(iface)->Send(client->Get_Client_Hint(), client->response);
+					break;
+				}
 				break;
+			case TFTP_SERVER:
 			default:
-				this->Get_Interfaces().at(iface).Send(client->Get_Client_Hint(), client->response);
+				this->Get_Interface(iface)->Send(client->Get_Client_Hint(), client->response);
 				break;
 			}
 		}
 
 		Iface* Server::Get_Interface(const int& id)
 		{
-			return &this->Interfaces.at(id);
+			for (Iface & iface : Get_Interfaces())
+			{
+				if (iface.Get_Id() == id)
+					return &iface;
+			}
+
+			return nullptr;
 		}
 
 		bool Server::Listen(std::vector<std::thread>* threads)
@@ -253,9 +365,10 @@ namespace Namiono
 
 		bool Server::Close()
 		{
-			for (_SIZET i = 0; i < Interfaces.size(); i++)
+
+			for (Iface & iface : Get_Interfaces())
 			{
-				Interfaces.at(i).Close();
+				iface.Close();
 			}
 
 			if (this->Interfaces.size() != 0)
@@ -267,11 +380,6 @@ namespace Namiono
 		bool Server::Has_Client(const std::string& key)
 		{
 			return clients.find(key) != clients.end();
-		}
-
-		std::string Server::Get_TFTP_Directory() const
-		{
-			return this->rootDir;
 		}
 
 		Client* Server::Add_Client(const ServiceType& t, const sockaddr_in& remote)

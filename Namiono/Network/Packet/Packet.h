@@ -26,6 +26,8 @@ namespace Namiono
 		public:
 			Packet(const ServiceType& serviceType, const char* data, const _SIZET* length);
 			Packet(const ServiceType& serviceType, Packet& packet, const _SIZET& length, const DHCP_MSGTYPE& msgType);
+			Packet(const ServiceType& serviceType, Packet& packet, const _SIZET& length);
+
 			Packet() {};
 			Packet(const ServiceType& serviceType, const _SIZET& length, const Packet_OPCode& opcode);
 
@@ -53,7 +55,7 @@ namespace Namiono
 
 			void set_hops(const _BYTE& hops);
 			void increase_hops(const _BYTE& hops);
-		
+
 			_BYTE get_hops();
 
 			void set_xid(const _ULONG& xid);
@@ -110,7 +112,7 @@ namespace Namiono
 
 			void Set_Block(const _USHORT block);
 			_USHORT Get_Block();
-		
+
 			void Dump();
 			void Trim();
 		private:

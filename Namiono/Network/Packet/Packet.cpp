@@ -201,15 +201,7 @@ namespace Namiono
 			switch (get_flags())
 			{
 			case DHCP_FLAGS::Unicast:
-				if (get_clientIP() == 0)
-				{
-					set_flags(DHCP_FLAGS::Broadcast);
-				}
-				else
-				{
-					set_flags(packet.get_flags());
-				}
-
+					set_flags(get_clientIP() == 0 ? DHCP_FLAGS::Broadcast : packet.get_flags());
 				break;
 			case DHCP_FLAGS::Broadcast:
 				set_flags(packet.get_flags());
@@ -233,6 +225,40 @@ namespace Namiono
 			if (packet.Has_DHCPOption(97))
 				Add_DHCPOption(packet.Get_DHCPOption(97));
 		}
+
+		Packet::Packet(const ServiceType& serviceType, Packet& packet, const _SIZET& length)
+		{
+			_SIZET maxpktSize = length + 1024;
+			this->serviceType = serviceType;
+
+			this->buffer = new char[maxpktSize];
+			ClearBuffer(this->Get_Buffer(), maxpktSize);
+
+			this->Set_Opcode(DHCP_RES);
+
+			memcpy(&this->Get_Buffer()[0], &packet.Get_Buffer()[0], maxpktSize);
+			this->packetLength = maxpktSize;
+
+			for (_SIZET i = 240; i < this->get_Length(); i++)
+			{
+				if (static_cast<_BYTE>(this->Get_Buffer()[i]) == static_cast<_BYTE>(0xff))
+					break;
+
+				if (static_cast<_BYTE>(this->Get_Buffer()[i + 1]) == static_cast<_BYTE>(1))
+				{
+					Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(this->Get_Buffer()[i]),
+						static_cast<_BYTE>(this->Get_Buffer()[i + sizeof(_USHORT)])));
+				}
+				else
+				{
+					Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(this->Get_Buffer()[i]),
+						static_cast<_BYTE>(this->Get_Buffer()[i + 1]), &this->Get_Buffer()[i + sizeof(_USHORT)]));
+				}
+
+				i += static_cast<_SIZET>(1 + static_cast<_SIZET>(this->Get_Buffer()[i + 1]));
+			}
+		}
+
 
 		Packet::Packet(const ServiceType& serviceType, const _SIZET& length, const Packet_OPCode& opcode)
 		{
@@ -306,8 +332,7 @@ namespace Namiono
 
 		void Packet::Remove_DHCPOption(const _BYTE& opt)
 		{
-			if (Has_DHCPOption(opt))
-				dhcp_options.erase(opt);
+			dhcp_options.erase(opt);
 		}
 
 		void Packet::Remove_TFTPOption(const std::string& opt)

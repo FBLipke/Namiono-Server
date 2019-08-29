@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="100">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <df name="Environment">
+        <in>environment.cpp</in>
+      </df>
+      <df name="Namiono">
+        <df name="Network">
+          <df name="Packet">
+            <in>Packet.cpp</in>
+          </df>
+          <df name="Server">
+            <in>Interface.cpp</in>
+            <in>Server.cpp</in>
+          </df>
+          <in>Network.cpp</in>
+        </df>
+        <df name="Services">
+          <in>DHCP_Service.cpp</in>
+          <in>DHCP_Service.h</in>
+          <in>Service.cpp</in>
+          <in>Service.h</in>
+        </df>
+        <in>Filesystem.cpp</in>
+        <in>Functions.cpp</in>
+        <in>Namiono.cpp</in>
+      </df>
+      <in>main.cpp</in>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+      <itemPath>nbproject/private/launcher.properties</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>.</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>false</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <flagsDictionary>
+        <element flagsID="0" commonFlags="-std=c++11"/>
+      </flagsDictionary>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath>namiono</executablePath>
+          <ccTool>
+            <incDir>
+              <pElem>.</pElem>
+              <pElem>Namiono</pElem>
+              <pElem>Namiono/Network</pElem>
+              <pElem>Namiono/Network/Client</pElem>
+              <pElem>Namiono/Network/Packet</pElem>
+              <pElem>Namiono/Network/Server</pElem>
+              <pElem>Namiono/Network/Environment</pElem>
+            </incDir>
+          </ccTool>
+        </makeTool>
+        <preBuild>
+          <preBuildCommandWorkingDir>.</preBuildCommandWorkingDir>
+          <preBuildCommand></preBuildCommand>
+        </preBuild>
+      </makefileType>
+      <item path="Environment/environment.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+        </ccTool>
+      </item>
+      <item path="Namiono/Filesystem.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+        </ccTool>
+      </item>
+      <item path="Namiono/Functions.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+        </ccTool>
+      </item>
+      <item path="Namiono/Namiono.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+        </ccTool>
+      </item>
+      <item path="Namiono/Network/Network.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+        </ccTool>
+      </item>
+      <item path="Namiono/Network/Packet/Packet.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+        </ccTool>
+      </item>
+      <item path="Namiono/Network/Server/Interface.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+        <ccTool flags="0">
+        </ccTool>
+      </item>
+      <item path="Namiono/Network/Server/Server.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+        </ccTool>
+      </item>
+      <item path="Namiono/Services/DHCP_Service.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Namiono/Services/DHCP_Service.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Namiono/Services/Service.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="Namiono/Services/Service.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="main.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="0">
+        </ccTool>
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

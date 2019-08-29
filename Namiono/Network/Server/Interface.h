@@ -22,7 +22,8 @@ namespace Namiono
 		{
 		public:
 			Iface();
-			Iface(const _IPADDR addr, const _USHORT id, const _USHORT port);
+			Iface(const std::string& name, const int index, const _IPADDR address,
+				const _IPADDR netmask, const _IPADDR gateway, const _USHORT id, const _USHORT port);
 
 			virtual ~Iface();
 
@@ -38,17 +39,37 @@ namespace Namiono
 
 			_USHORT Get_Id() const;
 			_USHORT Get_Port() const;
-			_IPADDR Get_IPAddress() const;
+
+			_IPADDR Get_IPAddress();
+			_IPADDR Get_Gateway() const;
+			_IPADDR Get_Netmask() const;
+
+			bool IsUpstreamInterface() const;
+
 			std::string Get_ServerName() const;
+			_IPADDR Get_MulticastIP() const;
 			_SOCKET& Get_Socket();
 		private:
 			_IPADDR _address;
+			_IPADDR _netmask;
+			_IPADDR _gateway;
+			std::string ifname;
+
 			_USHORT _id;
 			_USHORT _port;
+
+			bool isUpstreamInterface = false;
 			std::vector<std::string> arpCache;
 
 			sockaddr_in _local;
+			_INT32 local_length;
+
 			_SOCKET _socket;
+			ip_mreq mreq;
+			in_addr localInterface;
+#ifndef _WIN32
+			struct ifreq ifr;
+#endif
 		};
 	}
 }

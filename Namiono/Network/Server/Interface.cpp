@@ -21,11 +21,15 @@ namespace Namiono
 		{
 		}
 
-		Iface::Iface(const _IPADDR address, const _USHORT id, const _USHORT port)
+		Iface::Iface(const std::string& name, const int index, const _IPADDR address, const _IPADDR netmask, const _IPADDR gateway, const _USHORT id, const _USHORT port)
 		{
+			this->ifname = name;
 			this->_address = address;
+			this->_gateway = gateway;
+			this->_netmask = netmask;
+			this->isUpstreamInterface = this->_gateway != 0;
 			this->_port = port;
-			this->_id = id;
+			this->_id = static_cast<_USHORT>(index);
 		}
 
 		Iface::~Iface()
@@ -34,57 +38,83 @@ namespace Namiono
 
 		bool Iface::Init()
 		{
-			this->_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+			this->_socket = socket(AF_INET, SOCK_DGRAM, 0);
+			_INT32 retval = SOCKET_ERROR;
 			ClearBuffer(&this->_local, sizeof this->_local);
-			this->_local.sin_addr.s_addr = this->_address;
+			this->_local.sin_addr.s_addr = INADDR_ANY;
 			this->_local.sin_family = AF_INET;
-			this->_local.sin_port = BS16(this->_port);
+			this->_local.sin_port = htons(this->_port);
 
 			_INT32 yes = 1;
-			
-			_INT32 retval = SOCKET_ERROR;
+
 			_INT32 val_length = sizeof(_INT32);
 
 			retval = setsockopt(this->_socket, SOL_SOCKET, SO_BROADCAST, (char*)&yes, val_length);
 			retval = setsockopt(this->_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, val_length);
+			
+#ifdef _WIN32
+			retval = setsockopt(this->_socket, SOL_SOCKET, SO_DONTROUTE, (char*)&yes, val_length);
+#endif
 
+			ClearBuffer(&mreq, sizeof mreq);
+			mreq.imr_multiaddr.s_addr = inet_addr(SETTINGS.DISCOVERY_ADDR.c_str());
+			mreq.imr_interface.s_addr = this->_local.sin_addr.s_addr;
+
+			setsockopt(this->_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq));
+			setsockopt(this->_socket, IPPROTO_IP, IP_MULTICAST_IF, (char *)&this->localInterface, sizeof(this->localInterface));
+#ifndef _WIN32
+			memset(&ifr, 0, sizeof(ifr));
+			snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), this->ifname.c_str());
+			retval = setsockopt(this->_socket, SOL_SOCKET, SO_BINDTODEVICE, (void *)&ifr, sizeof(ifr));
+
+#endif
 			return true;
 		}
 
 		std::string Iface::Get_ServerName() const
 		{
-			return Get_Hostname();
+			return Functions::Get_Hostname();
+		}
+
+		_IPADDR Iface::Get_MulticastIP() const
+		{
+			return mreq.imr_multiaddr.s_addr;
 		}
 
 		bool Iface::Start()
 		{
-
-			int retval = bind(this->_socket, reinterpret_cast<struct sockaddr*>(&this->_local), sizeof(this->_local));
+			int retval = bind(this->_socket, reinterpret_cast<struct sockaddr*>(&this->_local), sizeof this->_local);
 			if (retval == SOCKET_ERROR)
 			{
-				printf("[E] Error (bind): Cannot bind to Interface %ud\n", this->Get_Id());
+				printf("[E] Error (bind): Cannot bind to Interface %u\n", this->Get_Id());
 				return false;
 			}
-
-			printf("[I] Listening on %s:%d\n", Functions::AddressStr(this->Get_IPAddress()).c_str(), this->Get_Port());
 
 			return  retval == 0;
 		}
 
 		void Iface::Send(sockaddr_in& hint, Packet* response)
 		{
+
 			int retval = sendto(this->Get_Socket(), response->Get_Buffer(), static_cast<int>(response->get_Length()),
 				0, reinterpret_cast<struct sockaddr*>(&hint), sizeof hint);
+
+			if (retval == SOCKET_ERROR)
+			{
+				printf("[E] Error (sendto): Cannot send on Interface %u\n", this->Get_Id());
+				return;
+			}
 		}
 
 		bool Iface::Close()
 		{
+			setsockopt(this->_socket, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char*)&mreq, sizeof(mreq));
 			_close(this->Get_Socket());
 
 			return true;
 		}
-		
+
 		bool Iface::Heartbeat()
 		{
 			return false;
@@ -97,15 +127,12 @@ namespace Namiono
 
 		void Iface::Add_ARPEntry(const std::string& mac)
 		{
-#ifdef _DEBUG
-			printf("[D] Added ARP Entry for %s on Interface %d\n", mac.c_str(), Get_Id());
-#endif
 			this->arpCache.emplace_back(mac);
 		}
 
 		bool Iface::Has_ARPEntry(const std::string & mac)
 		{
-			for (size_t i = 0; i < arpCache.size(); i++)
+			for (_SIZET i = 0; i < arpCache.size(); i++)
 			{
 				if (arpCache.at(i) == mac)
 					return true;
@@ -124,9 +151,24 @@ namespace Namiono
 			return this->_port;
 		}
 
-		_IPADDR Iface::Get_IPAddress() const
+		_IPADDR Iface::Get_IPAddress()
 		{
 			return this->_address;
+		}
+
+		_IPADDR Iface::Get_Netmask() const
+		{
+			return this->_netmask;
+		}
+
+		bool Iface::IsUpstreamInterface() const
+		{
+			return this->isUpstreamInterface;
+		}
+
+		_IPADDR Iface::Get_Gateway() const
+		{
+			return this->_gateway;
 		}
 
 		_SOCKET& Iface::Get_Socket()

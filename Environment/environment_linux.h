@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef __GNUC__
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include  <net/if.h>
 #include <arpa/inet.h>
 #include <sys/stat.h>
 #include <sys/select.h>
@@ -26,6 +27,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <netdb.h>
 #include <strings.h>
 #include <string.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <signal.h>
+#include <syslog.h>
 
 typedef _UINT _SIZET;
 typedef _UINT _IPADDR;
@@ -36,6 +41,8 @@ typedef _INT32 _SOCKET;
 #define _GET_CUR_WORKINGDIR(p,s) getcwd(p, s);
 #define ClearBuffer(x, y) bzero(x, y)
 #define _STAT stat
-#define _close(s) close(s);
+#define _close(s) close(s)
+#define _GetLastError strerror(errno)
+#define _select(n,r,w,e,t) pselect(n, r, w, e, t, nullptr);
 #endif /* ENVIRONMENT_ENVIRONMENT_LINUX_H_ */
 #endif

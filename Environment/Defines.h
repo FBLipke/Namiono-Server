@@ -36,6 +36,8 @@ typedef enum RBCP_DISCOVERYCONTROL
 	DISABLE_MCAST = 2,
 	UNICAST_ONLY = DISABLE_BCAST | DISABLE_MCAST,
 	SERVERLIST_ONLY = 4,
+	BCAST_SERVERLIST = DISABLE_MCAST | SERVERLIST_ONLY,
+	UNICAST_SERVERLIST = UNICAST_ONLY | SERVERLIST_ONLY,
 	BSTRAP_OVERRIDE = 8
 
 } RBCP_DISCOVERYCONTROL;
@@ -348,6 +350,8 @@ typedef struct DHCP_Option
 
 	void Get_SubOptions(std::vector<DHCP_Option>& suboptionList)
 	{
+		suboptionList.clear();
+
 		for (_SIZET i = 0; i < Length; i++)
 		{
 			if (static_cast<_BYTE>(Value[i]) == static_cast<_BYTE>(0xff) ||
@@ -600,7 +604,7 @@ typedef enum RBCP_Options
 	PXE_OS_INFO2 = 69,
 	PXE_BOOT_OS_INFO2 = 70,
 	PXE_BOOT_ITEM = 71,
-	
+
 	PXE_LCM_SERVER = 179,
 	PXE_LCM_DOMAIN = 180,
 	PXE_LCM_NIC_OPT0 = 181,
@@ -771,7 +775,6 @@ typedef struct RBCP
 	{
 		this->item = new _USHORT(0);
 		this->layer = new RBCP_LAYER(RBCP_LAYER::Bootfile);
-		this->bootServers = new std::vector<BootServerEntry>();
 
 		this->mcastip = new _IPADDR(0);
 		this->control = new RBCP_DISCOVERYCONTROL(DISABLE_MCAST);
@@ -784,19 +787,12 @@ typedef struct RBCP
 
 		delete this->layer;
 		this->layer = nullptr;
-		
+
 		delete this->control;
 		this->control = nullptr;
 
 		delete this->mcastip;
 		this->mcastip = nullptr;
-
-		if (this->bootServers != nullptr)
-			this->bootServers->clear();
-
-		delete this->bootServers;
-		this->bootServers = nullptr;
-
 	};
 
 	void Set_Item(const _USHORT& item)
@@ -824,55 +820,16 @@ typedef struct RBCP
 		*this->mcastip = ip;
 	}
 
-	const _IPADDR& Get_MulticastIP() const 
+	const _IPADDR& Get_MulticastIP() const
 	{
 		return *this->mcastip;
 	}
 
-	std::vector<BootServerEntry>* Get_Bootservers() const
-	{
-		return this->bootServers;
-	}
 
-	void Clear_BootServers()
-	{
-		this->bootServers->clear();
-	}
-
-	bool Has_BootServer(const _USHORT& id) const
-	{
-		if (this->bootServers->size() == 0 || this->bootServers->size() < id)
-			return false;
-
-		BootServerEntry* entry = &this->bootServers->at(id);
-
-		return entry != nullptr;
-	}
-
-	void Add_BootServer(const std::string& name, const std::vector <_IPADDR>& addresses)
-	{
-		_USHORT id = static_cast<_USHORT>(bootServers->size() + 1);
-
-		if (addresses.size() == 0)
-		{
-			printf("[E] Passed Bootserver %s without no addresses!\n", name.c_str());
-			return;
-		}
-
-		if (Has_BootServer(id))
-				return;
-#ifdef _DEBUG
-		printf("[D] Bootserver ( %s ) added!\n", name.c_str());
-#endif // _DEBUG
-			
-		bootServers->emplace_back(BootServerEntry(id, name, addresses, ""));
-	}
 
 private:
 	_USHORT* item = nullptr;
 	RBCP_LAYER* layer = nullptr;
-
-	std::vector<BootServerEntry>* bootServers = nullptr;
 
 	_IPADDR* mcastip = nullptr;
 	RBCP_DISCOVERYCONTROL* control = nullptr;
@@ -890,8 +847,8 @@ static struct SETTINGS
 
 	std::string PXEPROMP = "Press [F8] to boot from network...";
 	std::string PXEHDDDESC = "Boot from Harddisk";
-	std::string DISCOVERY_ADDR = "224.0.1.2";
-	
+	std::string DISCOVERY_ADDR = "224.0.2.1";
+
 	std::string NBDOMAIN = "FBLIPKE";
 
 	_USHORT TFTP_DEFAULT_BLOCKSIZE = 1024;
@@ -912,7 +869,7 @@ typedef struct WDS
 	WDS()
 	{
 		this->NextAction = new _BYTE(WDSNBP_OPTION_NEXTACTION::APPROVAL);
-		this->ActionDone = new WDSNBP_ActionDone_Values(WDSNBP_ActionDone_Values::False);
+		this->ActionDone = new WDSNBP_ActionDone_Values(True);
 		this->PollIntervall = new _USHORT(SETTINGS.PXE_MTFTP_DELAY);
 		this->RetryCount = new _USHORT(65535);
 		this->requestid = new _ULONG(1);
@@ -1085,7 +1042,7 @@ typedef struct DHCP_CLIENT
 
 		delete this->bootfile;
 		this->bootfile = nullptr;
-		
+
 		delete this->msgtype;
 		this->msgtype = nullptr;
 
@@ -1143,7 +1100,7 @@ typedef struct DHCP_CLIENT
 	{
 		*this->vendorid = vendor;
 
-		switch(*this->vendorid)
+		switch (*this->vendorid)
 		{
 		case PXEClient:
 			Set_VendorString("PXEClient");
@@ -1270,7 +1227,7 @@ typedef struct DHCP_CLIENT
 				}
 				else
 				{
-					*this->bootfile = *this->prefix + "startrom.n12";
+					*this->bootfile = *this->prefix + "wdsnbp.com";
 				}
 				break;
 			}
@@ -1347,7 +1304,7 @@ typedef struct TFTP_CLIENT
 		_SIZET bytes = 0;
 
 		this->filehandle = fopen(path.c_str(), "rb");
-		
+
 		if (fseek(this->filehandle, 0, SEEK_END) == 0)
 		{
 			bytes = static_cast<_SIZET>(ftell(this->filehandle));
@@ -1478,8 +1435,8 @@ typedef struct TFTP_CLIENT
 	~TFTP_CLIENT()
 	{
 		delete this->filename;
-		this-> filename = nullptr;
-		
+		this->filename = nullptr;
+
 		delete this->block;
 		this->block = nullptr;
 
@@ -1523,39 +1480,39 @@ private:
 
 typedef enum NTLMSSP_FLAGS
 {
-	NEG_UNICOE	= 0x00000001,
-	NEG_OEM		= 0x00000002,
-	REQ_TARGET	= 0x00000004,
+	NEG_UNICOE = 0x00000001,
+	NEG_OEM = 0x00000002,
+	REQ_TARGET = 0x00000004,
 
-	NEG_NTLM	= 0x00000200,
-	NEG_LOCAL	= 0x00004000,
-	NEG_ASIGN	= 0x00008000,
+	NEG_NTLM = 0x00000200,
+	NEG_LOCAL = 0x00004000,
+	NEG_ASIGN = 0x00008000,
 
-	TAR_DOMAIN	= 0x00010000,
-	TAR_SERVER	= 0x00020000,
-	TAR_SHARE	= 0x00040000,
-	NEG_NTLMV2	= 0x00080000,
+	TAR_DOMAIN = 0x00010000,
+	TAR_SERVER = 0x00020000,
+	TAR_SHARE = 0x00040000,
+	NEG_NTLMV2 = 0x00080000,
 
-	NEG_TARGET	= 0x00800000,
-	NEG_128BIT	= 0x20000000,
-	NEG_56BIT	= 0x80000000
+	NEG_TARGET = 0x00800000,
+	NEG_128BIT = 0x20000000,
+	NEG_56BIT = 0x80000000
 } NTLMSSP_FLAGS;
 
 typedef enum NTLMSSP_MESSAGETYPE
 {
-	NTLM_NEGOTIATE		= 0x01000000,
-	NTLM_CHALLENGE		= 0x02000000,
-	NTLM_AUTHENTICATE	= 0x03000000
+	NTLM_NEGOTIATE = 0x01000000,
+	NTLM_CHALLENGE = 0x02000000,
+	NTLM_AUTHENTICATE = 0x03000000
 } NTLMSSP_MESSAGETYPE;
 
 typedef enum NTLMSSP_TARGETINFO_TYPE
 {
-	END			= 0x0000,
-	NBServer	= 0x0100,
-	NBDomain	= 0x0200,
-	DNSHost		= 0x0300,
-	DNSDomain	= 0x0400,
-	TopDNSDom	= 0x0500
+	END = 0x0000,
+	NBServer = 0x0100,
+	NBDomain = 0x0200,
+	DNSHost = 0x0300,
+	DNSDomain = 0x0400,
+	TopDNSDom = 0x0500
 } NTLMSSP_TARGETINFO_TYPE;
 
 typedef struct NTLMSSP_TARGETINFO_ENTRY

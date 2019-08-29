@@ -1,3 +1,5 @@
+#pragma once
+
 /*
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -11,42 +13,45 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#pragma once
-
-#ifndef NAMIONO_NETWORK_NETWORK_H_
-#define NAMIONO_NETWORK_NETWORK_H_
-
-#include <Namiono/Network/Packet/Packet.h>
-#include <Namiono/Network/Client/Client.h>
-#include <Namiono/Network/Server/Interface.h>
-#include <Namiono/Network/Server/Server.h>
-
+#include <Namiono/Namiono.h>
 
 namespace Namiono
 {
 	namespace Network
 	{
+		static std::map<ServiceType, Namiono::Services::Service*> services;
+		static std::vector<BootServerEntry> serverlist;
+		static std::vector<_IPADDR> dhcpservers;
+
+		class Network
+		{
+		public:
+			Network(const std::string& rootDir);
+			~Network();
+
+			void Init();
+
+			void Start();
+
+			void Listen();
+
+			static std::vector<BootServerEntry>* Get_BootServers();
+			static std::vector<_IPADDR>* Get_UpstreamServers();
+
 #ifdef _WIN32
-		bool Init_Winsock(_INT32 major, _INT32 minor);
-		bool Close_Winsock();
+			bool Init_Winsock(_INT32 major, _INT32 minor);
+			bool Close_Winsock();
 #endif
-		void Bootstrap_Network(const std::string& rootDir);
-		void Handle_Request(ServiceType type, Server* server, int iface, Client* client, const std::string rootDir, Packet* packet);
-		void Handle_DHCP_Request(ServiceType* type, Server* server, int iface, Client* client, Packet* packet);
-		void Handle_TFTP_RRQ(ServiceType* type, Server* server, int iface, Client* client, const std::string& rootDir, Packet* packet);
-		void Handle_TFTP_ACK(ServiceType* type, Server* server, int iface, Client* client, Packet* packet);
-		void Handle_TFTP_ERR(ServiceType* type, Server* server, int iface, Client* client, Packet* packet);
-		void Handle_WDS_Options(Server* server, int iface, Client* client);
-		void Handle_DHCP_Discover(ServiceType* type, Server* server, int iface, Client* client, Packet* packet);
-		void Create_BootServer_List(Client* client);
-		void GenerateBootMenue(Client* client);
-		void Handle_IPXE_Options(Server* server, int iface, Client* client, Packet* response);
-		void Handle_RIS_RQU(ServiceType * type, Server* server, int iface, Client* client, Packet * packet, const std::string& rootDir);
-		void Handle_RIS_NEG(ServiceType * type, Server* server, int iface, Client* client, Packet * packet);
-		void Handle_RIS_AUT(ServiceType * type, Server* server, int iface, Client* client, Packet * packet);
-		void Relay_Request_Packet(ServiceType * type, Server* server, int iface, Client* client, Packet * packet);
-		void Relay_Response_Packet(ServiceType * type, Server* server, int iface, Client* client, Packet * packet);
+
+			void Close();
+		private:
+
+			_ULONG requestId = 0;
+			_USHORT id = 1;
+			std::vector<Server> servers;
+			std::vector<_IPADDR> addresses;
+			std::vector<std::thread>listenThreads;
+
+		};
 	}
 }
-
-#endif /* NAMIONO_NETWORK_NETWORK_H_ */
