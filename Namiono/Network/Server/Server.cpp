@@ -103,10 +103,13 @@ namespace Namiono
 				pAdapter = pAdapterInfo;
 				while (pAdapter)
 				{
+					address = inet_addr(pAdapter->IpAddressList.IpAddress.String);
+					if (address == inet_addr("127.0.0.1"))
+						continue;
+
 					index = pAdapter->ComboIndex;
 					_name = std::string(pAdapter->AdapterName);
 
-					address = inet_addr(pAdapter->IpAddressList.IpAddress.String);
 					netmask = inet_addr(pAdapter->IpAddressList.IpMask.String);
 					gateway = inet_addr(pAdapter->GatewayList.IpAddress.String);
 
@@ -135,16 +138,17 @@ namespace Namiono
 			{
 				if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET)
 				{
+					address = ((struct sockaddr_in*)ifa->ifa_addr)->sin_addr.s_addr;
+					if (address == inet_addr("127.0.0.1"))
+						continue;
 					index = if_nametoindex(ifa->ifa_name);
 					_name = std::string(ifa->ifa_name);
-					address = ((struct sockaddr_in*)ifa->ifa_addr)->sin_addr.s_addr;
+
 					netmask = ((struct sockaddr_in*)ifa->ifa_netmask)->sin_addr.s_addr;
 
 					GetDefaultGw(gateway);
 
-					if (address == inet_addr("127.0.0.1"))
-						continue;
-
+					
 					addrList->emplace_back(address);
 
 					for (_SIZET i = 0; i < _ports.size(); i++)

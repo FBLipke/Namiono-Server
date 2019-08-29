@@ -38,7 +38,7 @@ void DHCP_Functions::Generate_Bootmenu_From_ServerList(std::vector<BootServerEnt
 			continue;
 
 		/* id */
-		id = htons(serverlist->at(i).Ident);
+		id = serverlist->at(i).Ident;
 		memcpy(&menubuffer[offset], &id, sizeof id);
 		offset += sizeof id;
 

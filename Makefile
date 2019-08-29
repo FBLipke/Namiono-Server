@@ -20,8 +20,8 @@ Functions.o: Namiono/Common/Functions.cpp
 Network.o: Namiono/Network/Network.cpp
 	$(CXX) $(CXXFLAGS) -c Namiono/Network/Network.cpp
 
-TFTP_Service.o: Namiono/Services/TFTP_Service.cpp
-	$(CXX) $(CXXFLAGS) -c Namiono/Services/TFTP_Service.cpp
+TFTP_Service.o: Namiono/Services/TFTP/TFTP_Service.cpp
+	$(CXX) $(CXXFLAGS) -c Namiono/Services/TFTP/TFTP_Service.cpp
 
 DHCP_Service.o: Namiono/Services/DHCP/DHCP_Service.cpp
 	$(CXX) $(CXXFLAGS) -c Namiono/Services/DHCP/DHCP_Service.cpp

@@ -63,6 +63,7 @@ namespace Namiono
 
 			sockaddr_in _local;
 			_INT32 local_length;
+			ServerMode Servermode;
 
 			_SOCKET _socket;
 			ip_mreq mreq;

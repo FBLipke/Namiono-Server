@@ -36,6 +36,7 @@ namespace Namiono
 
 				switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
 				{
+				case INFORM:
 				case REQUEST:
 					this->Handle_Request_Request(type, server, iface, client, packet);
 					break;
@@ -125,7 +126,7 @@ namespace Namiono
 				{
 					char item[4];
 					ClearBuffer(item, sizeof item);
-					_USHORT _type = htons(client->dhcp->rbcp->Get_Item());
+					_USHORT _type = client->dhcp->rbcp->Get_Item();
 					RBCP_LAYER layer = client->dhcp->rbcp->Get_Layer();
 
 					memcpy(&item[0], &_type, sizeof(_USHORT));

@@ -30,16 +30,18 @@ using namespace Namiono::Common;
 #include <Namiono/Network/Server/Server.h>
 
 #include <Namiono/Services/Service.h>
+#include <Namiono/Services/BootService.h>
 
 #include <Namiono/Services/DHCP/DHCP_Functions.h>
 #include <Namiono/Services/DHCP/DHCP_Service.h>
 #include <Namiono/Services/DHCP/ProxyDHCP_Service.h>
 
-#include <Namiono/Services/TFTP_Service.h>
+#include <Namiono/Services/TFTP/TFTP_Service.h>
 #include <Namiono/Network/Network.h>
 
 namespace Namiono
 {
-    void Bootstrap();
+	static std::string TFTPRootDir = Combine(CurrentDirectory(), "TFTP_Root");
+	void Bootstrap();
 }
 #endif

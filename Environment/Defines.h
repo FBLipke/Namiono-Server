@@ -1227,7 +1227,8 @@ typedef struct DHCP_CLIENT
 				}
 				else
 				{
-					*this->bootfile = *this->prefix + "wdsnbp.com";
+					//*this->bootfile = *this->prefix + "wdsnbp.com";
+					*this->bootfile = "Boot\\bstrap.0";
 				}
 				break;
 			}
@@ -1250,6 +1251,7 @@ typedef struct DHCP_CLIENT
 				else
 				{
 					*this->bootfile = *this->prefix + "wdsnbp.com";
+
 				}
 				break;
 			}

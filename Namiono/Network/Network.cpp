@@ -36,13 +36,9 @@ namespace Namiono
 			return WSACleanup() == 0;
 		}
 #endif
-
 		Network::Network(const std::string& rootDir)
 		{
-
 			printf("[I] Starting network...\n");
-
-
 			using namespace Namiono::Services;
 
 			FILE* fil = fopen("Config/servers.txt", "r");
@@ -79,7 +75,6 @@ namespace Namiono
 
 				fclose(fil);
 			}
-
 
 			services.emplace(DHCP_SERVER, new DHCP_Service(*Get_UpstreamServers()));
 			services.emplace(BINL_SERVER, new ProxyDHCP_Service());

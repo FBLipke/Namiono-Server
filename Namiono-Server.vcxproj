@@ -41,7 +41,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -124,6 +124,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Namiono\Services\BootService.h" />
     <ClInclude Include="Namiono\Services\DHCP\DHCP_Functions.h" />
     <ClInclude Include="Environment\Defines.h" />
     <ClInclude Include="Environment\environment.h" />
@@ -138,11 +139,12 @@
     <ClInclude Include="Namiono\Network\Server\Server.h" />
     <ClInclude Include="Namiono\Services\DHCP\DHCP_Service.h" />
     <ClInclude Include="Namiono\Services\Service.h" />
-    <ClInclude Include="Namiono\Services\TFTP_Service.h" />
+    <ClInclude Include="Namiono\Services\TFTP\TFTP_Service.h" />
     <ClInclude Include="Namiono\Network\Network.h" />
     <ClInclude Include="Namiono\Services\DHCP\ProxyDHCP_Service.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Namiono\Services\BootService.cpp" />
     <ClCompile Include="Namiono\Services\DHCP\DHCP_Functions.cpp" />
     <ClCompile Include="Environment\environment.cpp" />
     <ClCompile Include="main.cpp" />
@@ -153,7 +155,7 @@
     <ClCompile Include="Namiono\Network\Server\Interface.cpp" />
     <ClCompile Include="Namiono\Network\Server\Server.cpp" />
     <ClCompile Include="Namiono\Services\DHCP\DHCP_Service.cpp" />
-    <ClCompile Include="Namiono\Services\TFTP_Service.cpp" />
+    <ClCompile Include="Namiono\Services\TFTP\TFTP_Service.cpp" />
     <ClCompile Include="Namiono\Network\Network.cpp" />
     <ClCompile Include="Namiono\Services\DHCP\ProxyDHCP_Service.cpp" />
   </ItemGroup>

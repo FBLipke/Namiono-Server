@@ -28,6 +28,21 @@ namespace Namiono
 			this->_gateway = gateway;
 			this->_netmask = netmask;
 			this->isUpstreamInterface = this->_gateway != 0;
+			
+			
+			switch (_port)
+			{
+			case 67:
+			case 69:
+			case 4011:
+				Servermode = UDP;
+				break;
+			case 9000:
+			default:
+				Servermode = TCP;
+				break;
+			}
+
 			this->_port = port;
 			this->_id = static_cast<_USHORT>(index);
 		}
@@ -38,16 +53,42 @@ namespace Namiono
 
 		bool Iface::Init()
 		{
-
-			this->_socket = socket(AF_INET, SOCK_DGRAM, 0);
-			_INT32 retval = SOCKET_ERROR;
 			ClearBuffer(&this->_local, sizeof this->_local);
 			this->_local.sin_addr.s_addr = INADDR_ANY;
-			this->_local.sin_family = AF_INET;
+
+			switch (Servermode)
+			{
+			case TCP:
+				this->_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+				this->_local.sin_family = AF_INET;
+				break;
+			case TCP6:
+				this->_socket = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+				this->_local.sin_family = AF_INET6;
+				break;
+			case UDP:
+				this->_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+				this->_local.sin_family = AF_INET;
+				break;
+			case UDP6:
+				this->_socket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+				this->_local.sin_family = AF_INET6;
+				break;
+			case UDPMCAST:
+				this->_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+				this->_local.sin_family = AF_INET;
+				break;
+			case UNKNOWN:
+			default:
+				this->_socket = socket(AF_UNSPEC, SOCK_RAW, 0);
+				this->_local.sin_family = AF_UNSPEC;
+				break;
+			}
+
+			_INT32 retval = SOCKET_ERROR;
 			this->_local.sin_port = htons(this->_port);
 
 			_INT32 yes = 1;
-
 			_INT32 val_length = sizeof(_INT32);
 
 			retval = setsockopt(this->_socket, SOL_SOCKET, SO_BROADCAST, (char*)&yes, val_length);
@@ -96,7 +137,6 @@ namespace Namiono
 
 		void Iface::Send(sockaddr_in& hint, Packet* response)
 		{
-
 			int retval = sendto(this->Get_Socket(), response->Get_Buffer(), static_cast<int>(response->get_Length()),
 				0, reinterpret_cast<struct sockaddr*>(&hint), sizeof hint);
 
