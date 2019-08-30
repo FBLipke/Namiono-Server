@@ -15,9 +15,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 int main()
 {
-	printf("Namiono-Server 0.5\n");
+	printf("Namiono-Server 0.5b\n");
+	Namiono::_Namiono* namiono = new Namiono::_Namiono();
 
-	Namiono::Bootstrap();
+	namiono->Init();
+	namiono->Start();
+	namiono->Process();
+	namiono->Close();
+
+	delete namiono;
+	namiono = nullptr;
+	
 	return 0;
 }
 

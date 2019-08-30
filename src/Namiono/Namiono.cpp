@@ -14,20 +14,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <Namiono/Namiono.h>
 namespace Namiono
 {
-
-	void Bootstrap()
+	_Namiono::_Namiono()
 	{
-		printf("[I] Starting...\n");
-
-		
 		printf("[I] Current Directory is: %s\n", CurrentDirectory().c_str());
+	}
+
+	_Namiono::~_Namiono()
+	{
+		delete this->network;
+		this->network = nullptr;
+	}
+
+	bool _Namiono::Init()
+	{
+		printf("[I] Initializing...\n");
+		this->TFTPRootDir = Combine(CurrentDirectory(), "TFTP_Root");
+
 
 		if (!IsDirExist(TFTPRootDir))
 			if (!MakePath(TFTPRootDir))
 			{
 				printf("[E] Failed to create Path: %s\n", TFTPRootDir.c_str());
 
-				return;
+				return false;
 			}
 
 		printf("[I] TFTP-Root Directory is: %s\n", TFTPRootDir.c_str());
@@ -38,7 +47,6 @@ namespace Namiono
 		MakePath(Combine(TFTPRootDir, "Config"));
 		MakePath(Combine(TFTPRootDir, "tmp"));
 		MakePath(Combine(TFTPRootDir, "pxelinux"));
-
 		MakePath(Combine(TFTPRootDir, "OSChooser"));
 
 		if (!FileExist(Combine(TFTPRootDir, std::string("Boot\\x86\\wdsnbp.com"))))
@@ -57,12 +65,31 @@ namespace Namiono
 			printf("[W] File not found: %s\n(Put this file in the expected Directory).\n",
 				Combine(TFTPRootDir, std::string("Boot\\x64\\default.bcd")).c_str());
 
-		Namiono::Network::Network* network = new Namiono::Network::Network(TFTPRootDir);
 
-		network->Init();
-		network->Start();
+		this->network = new Namiono::Network::Network(TFTPRootDir);
+		this->network->Init();
 
-		network->Listen();
-		network->Close();
+		return true;
+	}
+
+	void _Namiono::Start()
+	{
+		printf("[I] Starting...\n");
+		this->network->Start();
+	}
+
+	void _Namiono::Process()
+	{
+		this->network->Listen();
+	}
+
+	void _Namiono::Heartbeat()
+	{
+	}
+
+	void _Namiono::Close()
+	{
+		printf("[I] Closing...\n");
+		this->network->Close();
 	}
 }

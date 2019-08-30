@@ -30,8 +30,6 @@ using namespace Namiono::Common;
 #include <Namiono/Network/Server/Server.h>
 
 #include <Namiono/Services/Service.h>
-#include <Namiono/Services/BootService.h>
-
 #include <Namiono/Services/DHCP/DHCP_Functions.h>
 #include <Namiono/Services/DHCP/DHCP_Service.h>
 #include <Namiono/Services/DHCP/ProxyDHCP_Service.h>
@@ -41,7 +39,21 @@ using namespace Namiono::Common;
 
 namespace Namiono
 {
-	static std::string TFTPRootDir = Combine(CurrentDirectory(), "TFTP_Root");
-	void Bootstrap();
+	class _Namiono
+	{
+	public:
+		_Namiono();
+		~_Namiono();
+
+		bool Init();
+		void Start();
+		void Process();
+		void Heartbeat();
+		void Close();
+
+	private:
+		std::string TFTPRootDir;
+		Namiono::Network::Network* network = nullptr;
+	};
 }
 #endif

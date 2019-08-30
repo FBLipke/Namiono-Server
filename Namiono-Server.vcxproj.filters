@@ -15,102 +15,96 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Namiono\Network\Client\Client.h">
+    <ClInclude Include="src\Environment\Defines.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Network\Packet\Packet.h">
+    <ClInclude Include="src\Environment\environment.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Network\Server\Server.h">
+    <ClInclude Include="src\Environment\environment_linux.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Namiono.h">
+    <ClInclude Include="src\Environment\environment_windows.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Environment\Defines.h">
+    <ClInclude Include="src\Namiono\Common\Filesystem.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Environment\environment.h">
+    <ClInclude Include="src\Namiono\Common\Functions.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Environment\environment_linux.h">
+    <ClInclude Include="src\Namiono\Network\Client\Client.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Environment\environment_windows.h">
+    <ClInclude Include="src\Namiono\Network\Packet\Packet.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Network\Server\Interface.h">
+    <ClInclude Include="src\Namiono\Network\Server\Interface.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Services\Service.h">
+    <ClInclude Include="src\Namiono\Network\Server\Server.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Network\Network.h">
+    <ClInclude Include="src\Namiono\Network\Network.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Common\Filesystem.h">
+    <ClInclude Include="src\Namiono\Services\DHCP\DHCP_Functions.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Common\Functions.h">
+    <ClInclude Include="src\Namiono\Services\DHCP\DHCP_Service.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Services\DHCP\DHCP_Service.h">
+    <ClInclude Include="src\Namiono\Services\DHCP\ProxyDHCP_Service.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Services\DHCP\ProxyDHCP_Service.h">
+    <ClInclude Include="src\Namiono\Services\TFTP\TFTP_Service.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Services\DHCP\DHCP_Functions.h">
+    <ClInclude Include="src\Namiono\Services\Service.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Namiono\Services\TFTP\TFTP_Service.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="Namiono\Services\BootService.h">
+    <ClInclude Include="src\Namiono\Namiono.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Namiono\Network\Packet\Packet.cpp">
+    <ClCompile Include="src\Environment\environment.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Namiono\Namiono.cpp">
+    <ClCompile Include="src\Namiono\Common\Filesystem.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="src\Namiono\Common\Functions.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Environment\environment.cpp">
+    <ClCompile Include="src\Namiono\Network\Packet\Packet.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Namiono\Network\Server\Server.cpp">
+    <ClCompile Include="src\Namiono\Network\Server\Interface.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Namiono\Network\Server\Interface.cpp">
+    <ClCompile Include="src\Namiono\Network\Server\Server.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Namiono\Network\Network.cpp">
+    <ClCompile Include="src\Namiono\Network\Network.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Namiono\Common\Filesystem.cpp">
+    <ClCompile Include="src\Namiono\Services\DHCP\DHCP_Functions.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Namiono\Common\Functions.cpp">
+    <ClCompile Include="src\Namiono\Services\DHCP\DHCP_Service.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Namiono\Services\DHCP\DHCP_Service.cpp">
+    <ClCompile Include="src\Namiono\Services\DHCP\ProxyDHCP_Service.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Namiono\Services\DHCP\ProxyDHCP_Service.cpp">
+    <ClCompile Include="src\Namiono\Services\TFTP\TFTP_Service.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Namiono\Services\DHCP\DHCP_Functions.cpp">
+    <ClCompile Include="src\Namiono\Namiono.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Namiono\Services\TFTP\TFTP_Service.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="Namiono\Services\BootService.cpp">
+    <ClCompile Include="src\main.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

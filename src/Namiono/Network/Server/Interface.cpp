@@ -28,9 +28,10 @@ namespace Namiono
 			this->_gateway = gateway;
 			this->_netmask = netmask;
 			this->isUpstreamInterface = this->_gateway != 0;
+				this->_port = port;
+			this->_id = static_cast<_USHORT>(index);
 			
-			
-			switch (_port)
+			switch (this->_port)
 			{
 			case 67:
 			case 69:
@@ -42,9 +43,6 @@ namespace Namiono
 				Servermode = TCP;
 				break;
 			}
-
-			this->_port = port;
-			this->_id = static_cast<_USHORT>(index);
 		}
 
 		Iface::~Iface()
@@ -94,16 +92,12 @@ namespace Namiono
 			retval = setsockopt(this->_socket, SOL_SOCKET, SO_BROADCAST, (char*)&yes, val_length);
 			retval = setsockopt(this->_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, val_length);
 			
-#ifdef _WIN32
-			retval = setsockopt(this->_socket, SOL_SOCKET, SO_DONTROUTE, (char*)&yes, val_length);
-#endif
-
 			ClearBuffer(&mreq, sizeof mreq);
 			mreq.imr_multiaddr.s_addr = inet_addr(SETTINGS.DISCOVERY_ADDR.c_str());
 			mreq.imr_interface.s_addr = this->_local.sin_addr.s_addr;
 
 			setsockopt(this->_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq));
-			setsockopt(this->_socket, IPPROTO_IP, IP_MULTICAST_IF, (char *)&this->localInterface, sizeof(this->localInterface));
+			setsockopt(this->_socket, IPPROTO_IP, IP_MULTICAST_IF, (char *)&mreq.imr_interface.s_addr, sizeof(mreq.imr_interface.s_addr));
 #ifndef _WIN32
 			memset(&ifr, 0, sizeof(ifr));
 			snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), this->ifname.c_str());

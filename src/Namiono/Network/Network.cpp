@@ -38,7 +38,14 @@ namespace Namiono
 #endif
 		Network::Network(const std::string& rootDir)
 		{
-			printf("[I] Starting network...\n");
+#ifdef _WIN32
+			if (!Init_Winsock(2, 2))
+			{
+				printf("[E] Error: %s\n", strerror(WSAGetLastError()));
+				return;
+			}
+#endif
+
 			using namespace Namiono::Services;
 
 			FILE* fil = fopen("Config/servers.txt", "r");
@@ -86,18 +93,17 @@ namespace Namiono
 
 		Network::~Network()
 		{
+#ifdef _WIN32
+			if (!Close_Winsock())
+			{
+				printf("[E] Closing Winsock - Error: %d\n", WSAGetLastError());
+				return;
+			}
+#endif
 		}
 
 		void Network::Init()
 		{
-#ifdef _WIN32
-			if (!Init_Winsock(2, 2))
-			{
-				printf("[E] Error: %s\n", strerror(WSAGetLastError()));
-				return;
-			}
-#endif
-
 			for (_SIZET i = 0; i < servers.size(); i++)
 			{
 				servers.at(i).Init();
@@ -106,6 +112,8 @@ namespace Namiono
 
 		void Network::Start()
 		{
+			printf("[I] Starting network...\n");
+
 			for (_SIZET i = 0; i < servers.size(); i++)
 			{
 				servers.at(i).Start();
@@ -137,18 +145,14 @@ namespace Namiono
 
 		void Network::Close()
 		{
+			printf("[I] Closing network...\n");
+
 			for (_SIZET i = 0; i < servers.size(); i++)
 			{
 				servers.at(i).Close();
 			}
 
-#ifdef _WIN32
-			if (!Close_Winsock())
-			{
-				printf("[E] Closing Winsock - Error: %d\n", WSAGetLastError());
-				return;
-			}
-#endif
+
 		}
 	}
 }

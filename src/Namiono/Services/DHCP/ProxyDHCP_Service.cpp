@@ -161,7 +161,7 @@ namespace Namiono
 
 							printf("[I] ProxyDHCP : Redirecting client %s to Server %s (%s:4011)...\n",
 								client->Get_ID().c_str(), Functions::AddressStr(_bootServer).c_str(),
-								_serverName.c_str(), server->Get_Interface(iface)->Get_Port());
+								_serverName.c_str());
 
 							if (server->Get_Interface(iface)->Get_Port() == 4011)
 							{
