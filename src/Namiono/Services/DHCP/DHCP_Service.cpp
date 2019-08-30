@@ -107,7 +107,7 @@ namespace Namiono
 			}
 
 			client->response = new Packet(type, *packet, packet->get_Length());
-			DHCP_Functions::Relay_Request_Packet(inet_addr("10.20.0.1"), 67, type, server, iface, client);
+			DHCP_Functions::Relay_Request_Packet(SETTINGS.UPSTREAMSERVER, 67, type, server, iface, client);
 
 			
 			delete client->response;
@@ -124,7 +124,7 @@ namespace Namiono
 			}
 
 			client->response = new Packet(type, *packet, packet->get_Length());
-			DHCP_Functions::Relay_Request_Packet(inet_addr("10.20.0.1"), 67, type, server, iface, client);
+			DHCP_Functions::Relay_Request_Packet(SETTINGS.UPSTREAMSERVER, 67, type, server, iface, client);
 
 			
 			delete client->response;

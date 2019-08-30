@@ -16,7 +16,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef NAMIONO_NAMIONO_H_
 #define NAMIONO_NAMIONO_H_
 
-
 #include <Environment/environment.h>
 #include <Environment/Defines.h>
 #include <Namiono/Common/Functions.h>
@@ -42,7 +41,8 @@ namespace Namiono
 	class _Namiono
 	{
 	public:
-		_Namiono();
+		_Namiono() {};
+		_Namiono(int argc, char* argv[]);
 		~_Namiono();
 
 		bool Init();

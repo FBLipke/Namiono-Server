@@ -28,9 +28,9 @@ namespace Namiono
 			this->_gateway = gateway;
 			this->_netmask = netmask;
 			this->isUpstreamInterface = this->_gateway != 0;
-				this->_port = port;
+			this->_port = port;
 			this->_id = static_cast<_USHORT>(index);
-			
+
 			switch (this->_port)
 			{
 			case 67:
@@ -91,7 +91,7 @@ namespace Namiono
 
 			retval = setsockopt(this->_socket, SOL_SOCKET, SO_BROADCAST, (char*)&yes, val_length);
 			retval = setsockopt(this->_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, val_length);
-			
+
 			ClearBuffer(&mreq, sizeof mreq);
 			mreq.imr_multiaddr.s_addr = inet_addr(SETTINGS.DISCOVERY_ADDR.c_str());
 			mreq.imr_interface.s_addr = this->_local.sin_addr.s_addr;

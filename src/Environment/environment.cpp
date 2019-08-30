@@ -20,4 +20,3 @@ void print_Error(const std::string& message, _INT32 errorcode)
 	else
 		printf("[E] Error: %s\n", message.c_str());
 }
-

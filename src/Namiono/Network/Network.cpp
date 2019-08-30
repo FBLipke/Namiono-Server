@@ -48,7 +48,7 @@ namespace Namiono
 
 			using namespace Namiono::Services;
 
-			FILE* fil = fopen("Config/servers.txt", "r");
+			FILE* fil = fopen(Combine(SETTINGS.CONFDIR, "servers.txt").c_str(), "r");
 
 			if (fil != nullptr)
 			{

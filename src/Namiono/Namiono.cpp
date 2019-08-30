@@ -14,9 +14,37 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <Namiono/Namiono.h>
 namespace Namiono
 {
-	_Namiono::_Namiono()
+	_Namiono::_Namiono(int argc, char* argv[])
 	{
 		printf("[I] Current Directory is: %s\n", CurrentDirectory().c_str());
+		
+		if (argc > 1)
+			for (_INT32 i = 0; i < argc; i++)
+			{
+				if (memcmp(argv[i], "--rootdir", strlen("--rootdir")) == 0) /* tftp root Directory */
+				{
+					SETTINGS.ROOTDIR = std::string(argv[(i + 1)]);
+					printf("[D] ARG --rootdir : %s\n", SETTINGS.ROOTDIR.c_str());
+				}
+
+				if (memcmp(argv[i], "--confdir", strlen("--confdir")) == 0) /* tftp root Directory */
+				{
+					SETTINGS.CONFDIR = std::string(argv[(i + 1)]);
+					printf("[D] ARG --confdir : %s\n", SETTINGS.CONFDIR.c_str());
+				}
+
+				if (memcmp(argv[i], "--srv", strlen("--srv")) == 0) /* Upstream Server */
+				{
+					SETTINGS.UPSTREAMSERVER = inet_addr(argv[(i + 1)]);
+					printf("[D] ARG --srv : %s\n", Functions::AddressStr(SETTINGS.UPSTREAMSERVER).c_str());
+				}
+
+				if (memcmp(argv[i], "--nbdom", strlen("--nbdom")) == 0)
+				{
+					SETTINGS.NBDOMAIN = std::string(argv[(i + 1)]);
+					printf("[D] ARG --srv : %s\n", SETTINGS.NBDOMAIN.c_str());
+				}
+			}
 	}
 
 	_Namiono::~_Namiono()
@@ -28,8 +56,14 @@ namespace Namiono
 	bool _Namiono::Init()
 	{
 		printf("[I] Initializing...\n");
-		this->TFTPRootDir = Combine(CurrentDirectory(), "TFTP_Root");
-
+		if (SETTINGS.ROOTDIR.size() == 0)
+		{
+			this->TFTPRootDir = Combine(CurrentDirectory(), "TFTP_Root");
+		}
+		else
+		{
+			this->TFTPRootDir = Combine(SETTINGS.ROOTDIR,"");
+		}
 
 		if (!IsDirExist(TFTPRootDir))
 			if (!MakePath(TFTPRootDir))
@@ -92,4 +126,9 @@ namespace Namiono
 		printf("[I] Closing...\n");
 		this->network->Close();
 	}
+}
+
+void handle_args(_INT32 data_len, char* Data[])
+{
+	
 }

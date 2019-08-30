@@ -13,10 +13,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <Namiono/Namiono.h>
 
-int main()
+int main(int argc, char* argv[])
 {
 	printf("Namiono-Server 0.5b\n");
-	Namiono::_Namiono* namiono = new Namiono::_Namiono();
+	Namiono::_Namiono* namiono = new Namiono::_Namiono(argc,argv);
 
 	namiono->Init();
 	namiono->Start();

@@ -825,8 +825,6 @@ typedef struct RBCP
 		return *this->mcastip;
 	}
 
-
-
 private:
 	_USHORT* item = nullptr;
 	RBCP_LAYER* layer = nullptr;
@@ -845,11 +843,15 @@ static struct SETTINGS
 	_BYTE PXE_MTFTP_TIMEOUT = 1;
 	_BYTE PXE_MTFTP_DELAY = 10;
 
+	_IPADDR UPSTREAMSERVER = 0;
+
 	std::string PXEPROMP = "Press [F8] to boot from network...";
 	std::string PXEHDDDESC = "Boot from Harddisk";
 	std::string DISCOVERY_ADDR = "224.0.2.1";
 
-	std::string NBDOMAIN = "FBLIPKE";
+	std::string ROOTDIR = "";
+	std::string CONFDIR = "";
+	std::string NBDOMAIN = "";
 
 	_USHORT TFTP_DEFAULT_BLOCKSIZE = 1024;
 	_USHORT MTFTP_SPORT = 1759;
@@ -861,7 +863,6 @@ static struct SETTINGS
 	bool SOCKET_BROADCAST = 1;
 	bool SOCKET_REUSEADDR = 1;
 	bool SOCKET_REUSEPORT = 1;
-
 } SETTINGS;
 
 typedef struct WDS
@@ -874,7 +875,7 @@ typedef struct WDS
 		this->RetryCount = new _USHORT(65535);
 		this->requestid = new _ULONG(1);
 		this->bcdfile = new std::string("");
-		this->referalIP = new _IPADDR(0);
+		this->referalIP = new _IPADDR(SETTINGS.UPSTREAMSERVER);
 		this->AdminMessage = new std::string("Namiono-Server 0.5");
 		this->ServerSelection = new bool(0);
 	}

@@ -176,14 +176,17 @@ namespace Namiono
 			return false;
 		}
 
-		std::string Combine(const std::string& p1, const std::string& p2)
+		std::string Combine(const std::string& p1, const std::string& p2 = "")
 		{
 			std::string _path = p1;
 
 			if (!__has_endingslash(_path))
 				_path = _path + __pathSeperatorChar();
 
-			return __replaceSlash(_path + p2);
+			if (p2.size() != 0)
+				return __replaceSlash(_path + p2);
+			else
+				return __replaceSlash(_path);
 		}
 	}
 }
