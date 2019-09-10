@@ -22,7 +22,7 @@ namespace Namiono
 		{
 		public:
 			Iface();
-			Iface(const std::string& name, const int index, const _IPADDR address,
+			Iface(SETTINGS* settings, const ServiceType& type, const std::string& name, const int index, const _IPADDR address,
 				const _IPADDR netmask, const _IPADDR gateway, const _USHORT id, const _USHORT port);
 
 			virtual ~Iface();
@@ -49,6 +49,7 @@ namespace Namiono
 			std::string Get_ServerName() const;
 			_IPADDR Get_MulticastIP() const;
 			_SOCKET& Get_Socket();
+			ServiceType& Get_ServiceType();
 		private:
 			_IPADDR _address;
 			_IPADDR _netmask;
@@ -64,10 +65,11 @@ namespace Namiono
 			sockaddr_in _local;
 			_INT32 local_length;
 			ServerMode Servermode;
+			ServiceType serviceType;
+			SETTINGS* settings;
 
 			_SOCKET _socket;
 			ip_mreq mreq;
-			in_addr localInterface;
 #ifndef _WIN32
 			struct ifreq ifr;
 #endif

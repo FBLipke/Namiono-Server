@@ -16,9 +16,6 @@ namespace Namiono
 {
 	namespace Common
 	{
-
-
-
 		std::string __pathSeperatorChar()
 		{
 			std::string slash = "/";
@@ -179,6 +176,9 @@ namespace Namiono
 		std::string Combine(const std::string& p1, const std::string& p2 = "")
 		{
 			std::string _path = p1;
+
+			if (p1.size() == 0)
+				return p2;
 
 			if (!__has_endingslash(_path))
 				_path = _path + __pathSeperatorChar();

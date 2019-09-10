@@ -15,23 +15,24 @@ namespace Namiono
 			public Service
 		{
 		public:
-			TFTP_Service(const std::string& rootDir);
+			TFTP_Service(SETTINGS* settings, const std::string& rootDir);
 
-			virtual void Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, int iface,
+			virtual void Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
 				Namiono::Network::Client* client, Namiono::Network::Packet* packet);
 
-			void Handle_RRQ_Request(const ServiceType& type, Namiono::Network::Server* server, int iface,
+			void Handle_RRQ_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
 				Namiono::Network::Client* client, Namiono::Network::Packet* packet);
 
-			void Handle_ACK_Request(const ServiceType& type, Namiono::Network::Server* server, int iface,
+			void Handle_ACK_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
 				Namiono::Network::Client* client, Namiono::Network::Packet* packet);
 
-			void Handle_ERR_Request(const ServiceType& type, Namiono::Network::Server* server, int iface,
+			void Handle_ERR_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
 				Namiono::Network::Client* client, Namiono::Network::Packet* packet);
 
 			~TFTP_Service();
 		private:
 			std::string _rootDir;
+			SETTINGS* settings = nullptr;
 		};
 	}
 }

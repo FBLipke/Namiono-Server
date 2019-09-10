@@ -21,10 +21,13 @@ namespace Namiono
 		{
 		}
 
-		Iface::Iface(const std::string& name, const int index, const _IPADDR address, const _IPADDR netmask, const _IPADDR gateway, const _USHORT id, const _USHORT port)
+		Iface::Iface(SETTINGS* settings, const ServiceType& type, const std::string& name, const int index, const _IPADDR address,
+			const _IPADDR netmask, const _IPADDR gateway, const _USHORT id, const _USHORT port)
 		{
+			this->settings = settings;
 			this->ifname = name;
 			this->_address = address;
+			this->serviceType = type;
 			this->_gateway = gateway;
 			this->_netmask = netmask;
 			this->isUpstreamInterface = this->_gateway != 0;
@@ -93,7 +96,7 @@ namespace Namiono
 			retval = setsockopt(this->_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, val_length);
 
 			ClearBuffer(&mreq, sizeof mreq);
-			mreq.imr_multiaddr.s_addr = inet_addr(SETTINGS.DISCOVERY_ADDR.c_str());
+			mreq.imr_multiaddr.s_addr = inet_addr(settings->DISCOVERY_ADDR.c_str());
 			mreq.imr_interface.s_addr = this->_local.sin_addr.s_addr;
 
 			setsockopt(this->_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq));
@@ -131,6 +134,9 @@ namespace Namiono
 
 		void Iface::Send(sockaddr_in& hint, Packet* response)
 		{
+			if (response == nullptr)
+				return;
+
 			int retval = sendto(this->Get_Socket(), response->Get_Buffer(), static_cast<int>(response->get_Length()),
 				0, reinterpret_cast<struct sockaddr*>(&hint), sizeof hint);
 
@@ -208,6 +214,11 @@ namespace Namiono
 		_SOCKET& Iface::Get_Socket()
 		{
 			return this->_socket;
+		}
+
+		ServiceType & Iface::Get_ServiceType()
+		{
+			return serviceType;
 		}
 	}
 }

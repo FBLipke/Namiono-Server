@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Environment\Defines.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="src\Environment\environment.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -66,6 +63,45 @@
     <ClInclude Include="src\Namiono\Namiono.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\Namiono\Network\Client\DHCP\WDS\WDS_Client.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Network\Client\DHCP\DHCP_Client.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Network\Client\DHCP\BSDP\BSDP_Client.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Network\Client\DHCP\RBCP\RBCP_Client.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Network\Client\DHCP\IPXE\IPXE_Client.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Network\Client\TFTP\TFTP_Client.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Defines\DHCP\DHCP_Defines.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Defines\TFTP\TFTP_Defines.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Defines\DHCP\RBCP\RBCP_Defines.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Defines\DHCP\WDS\WDS_Defines.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Defines\DHCP\IPXE\IPXE_Defines.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Defines\DHCP\BSDP\BSDP_Defines.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Namiono\Defines\Namiono_Defines.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Environment\environment.cpp">
@@ -107,6 +143,27 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\Namiono\Network\Client\Client.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Namiono\Network\Client\DHCP\WDS\WDS_Client.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Namiono\Network\Client\DHCP\DHCP_Client.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Namiono\Network\Client\DHCP\BSDP\BSDP_Client.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Namiono\Network\Client\DHCP\RBCP\RBCP_Client.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Namiono\Network\Client\DHCP\IPXE\IPXE_Client.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Namiono\Network\Client\TFTP\TFTP_Client.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="TFTP_Root\Boot\x64\wdsnbp.com" />
@@ -116,27 +173,24 @@
     <None Include="TFTP_Root\Boot\x64\pxeboot.n12" />
     <None Include="TFTP_Root\Boot\x64\wdsmgfw.efi" />
     <None Include="TFTP_Root\Boot\x64\boot.sdi" />
-    <None Include="TFTP_Root\Boot\x86\default.bcd" />
-    <None Include="TFTP_Root\Boot\x86\ntldr" />
-    <None Include="TFTP_Root\Boot\x86\setupldr.exe" />
-    <None Include="TFTP_Root\Boot\x86\startrom.n12" />
-    <None Include="TFTP_Root\Boot\x86\wdsnbp.com" />
-    <None Include="TFTP_Root\Boot\apitest.0" />
-    <None Include="TFTP_Root\Boot\bisconfig.0" />
-    <None Include="TFTP_Root\Boot\bstrap.0" />
-    <None Include="TFTP_Root\Boot\x86\pxeboot.n12" />
-    <None Include="TFTP_Root\OSChooser\English\welcome.osc" />
     <None Include="Makefile" />
     <None Include=".gitattributes" />
     <None Include=".gitignore" />
     <None Include="README.md" />
     <None Include=".travis.yml" />
+    <None Include="TFTP_Root\Boot\x86\default.bcd" />
+    <None Include="TFTP_Root\Boot\x86\wdsnbp.com" />
+    <None Include="TFTP_Root\Boot\x86\wdsmgfw.efi" />
+    <None Include="TFTP_Root\Boot\x86\pxeboot.n12" />
+    <None Include="TFTP_Root\Boot\x86\apitest.0" />
+    <None Include="TFTP_Root\Boot\x86\bisconfig.0" />
+    <None Include="TFTP_Root\Boot\x86\bstrap.0" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="TFTP_Root\Boot\x64\Fonts\wgl4_boot.ttf" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Config\servers.txt" />
-    <Text Include="Config\config.txt" />
+    <Text Include="TFTP_Root\Config\config.txt" />
+    <Text Include="TFTP_Root\Config\servers.txt" />
   </ItemGroup>
 </Project>

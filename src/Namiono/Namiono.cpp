@@ -14,41 +14,45 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <Namiono/Namiono.h>
 namespace Namiono
 {
-	_Namiono::_Namiono(int argc, char* argv[])
+	_Namiono::_Namiono(_INT32 argc, char* argv[])
 	{
 		printf("[I] Current Directory is: %s\n", CurrentDirectory().c_str());
-		
+		this->settings = new SETTINGS();
+
 		if (argc > 1)
 			for (_INT32 i = 0; i < argc; i++)
 			{
 				if (memcmp(argv[i], "--rootdir", strlen("--rootdir")) == 0) /* tftp root Directory */
 				{
-					SETTINGS.ROOTDIR = std::string(argv[(i + 1)]);
-					printf("[D] ARG --rootdir : %s\n", SETTINGS.ROOTDIR.c_str());
+					settings->ROOTDIR = std::string(argv[(i + 1)]);
+					printf("[D] ARG --rootdir : %s\n", settings->ROOTDIR.c_str());
 				}
 
 				if (memcmp(argv[i], "--confdir", strlen("--confdir")) == 0) /* tftp root Directory */
 				{
-					SETTINGS.CONFDIR = std::string(argv[(i + 1)]);
-					printf("[D] ARG --confdir : %s\n", SETTINGS.CONFDIR.c_str());
+					settings->CONFDIR = std::string(argv[(i + 1)]);
+					printf("[D] ARG --confdir : %s\n", settings->CONFDIR.c_str());
 				}
 
 				if (memcmp(argv[i], "--srv", strlen("--srv")) == 0) /* Upstream Server */
 				{
-					SETTINGS.UPSTREAMSERVER = inet_addr(argv[(i + 1)]);
-					printf("[D] ARG --srv : %s\n", Functions::AddressStr(SETTINGS.UPSTREAMSERVER).c_str());
+					settings->UPSTREAMSERVER = inet_addr(argv[(i + 1)]);
+					printf("[D] ARG --srv : %s\n", Functions::AddressStr(settings->UPSTREAMSERVER).c_str());
 				}
 
 				if (memcmp(argv[i], "--nbdom", strlen("--nbdom")) == 0)
 				{
-					SETTINGS.NBDOMAIN = std::string(argv[(i + 1)]);
-					printf("[D] ARG --srv : %s\n", SETTINGS.NBDOMAIN.c_str());
+					settings->NBDOMAIN = std::string(argv[(i + 1)]);
+					printf("[D] ARG --srv : %s\n", settings->NBDOMAIN.c_str());
 				}
 			}
 	}
 
 	_Namiono::~_Namiono()
 	{
+		delete this->settings;
+		this->settings = nullptr;
+
 		delete this->network;
 		this->network = nullptr;
 	}
@@ -56,51 +60,57 @@ namespace Namiono
 	bool _Namiono::Init()
 	{
 		printf("[I] Initializing...\n");
-		if (SETTINGS.ROOTDIR.size() == 0)
+		if (settings->ROOTDIR.size() == 0)
 		{
 			this->TFTPRootDir = Combine(CurrentDirectory(), "TFTP_Root");
 		}
 		else
 		{
-			this->TFTPRootDir = Combine(SETTINGS.ROOTDIR,"");
+			this->TFTPRootDir = Combine(settings->ROOTDIR,"");
 		}
 
-		if (!IsDirExist(TFTPRootDir))
-			if (!MakePath(TFTPRootDir))
+		if (!IsDirExist(this->TFTPRootDir))
+			if (!MakePath(this->TFTPRootDir))
 			{
-				printf("[E] Failed to create Path: %s\n", TFTPRootDir.c_str());
+				printf("[E] Failed to create Path: %s\n", this->TFTPRootDir.c_str());
 
 				return false;
 			}
 
-		printf("[I] TFTP-Root Directory is: %s\n", TFTPRootDir.c_str());
+		printf("[I] TFTP-Root Directory is: %s\n", this->TFTPRootDir.c_str());
 
-		MakePath(Combine(TFTPRootDir, "Boot"));
-		MakePath(Combine(TFTPRootDir, "Boot\\x64"));
-		MakePath(Combine(TFTPRootDir, "Boot\\x86"));
-		MakePath(Combine(TFTPRootDir, "Config"));
-		MakePath(Combine(TFTPRootDir, "tmp"));
-		MakePath(Combine(TFTPRootDir, "pxelinux"));
-		MakePath(Combine(TFTPRootDir, "OSChooser"));
+		MakePath(Combine(this->TFTPRootDir, "Boot"));
+		MakePath(Combine(this->TFTPRootDir, "Boot\\x64"));
+		MakePath(Combine(this->TFTPRootDir, "Boot\\x86"));
+		MakePath(Combine(this->TFTPRootDir, "Config"));
 
-		if (!FileExist(Combine(TFTPRootDir, std::string("Boot\\x86\\wdsnbp.com"))))
+		if (settings->CONFDIR.size() == 0)
+			settings->CONFDIR = Combine(this->TFTPRootDir, "Config");
+		else
+			MakePath(settings->CONFDIR);
+
+		MakePath(Combine(this->TFTPRootDir, "tmp"));
+		MakePath(Combine(this->TFTPRootDir, "pxelinux"));
+		MakePath(Combine(this->TFTPRootDir, "OSChooser"));
+
+		if (!FileExist(Combine(this->TFTPRootDir, std::string("Boot\\x86\\wdsnbp.com"))))
 			printf("[W] File not found: %s\n(Put this file in the expected Directory).\n",
-				Combine(TFTPRootDir, std::string("Boot\\x86\\wdsnbp.com")).c_str());
+				Combine(this->TFTPRootDir, std::string("Boot\\x86\\wdsnbp.com")).c_str());
 
-		if (!FileExist(Combine(TFTPRootDir, std::string("Boot\\x64\\wdsnbp.com"))))
+		if (!FileExist(Combine(this->TFTPRootDir, std::string("Boot\\x64\\wdsnbp.com"))))
 			printf("[W] File not found: %s\n(Put this file in the expected Directory).\n",
-				Combine(TFTPRootDir, std::string("Boot\\x64\\wdsnbp.com")).c_str());
+				Combine(this->TFTPRootDir, std::string("Boot\\x64\\wdsnbp.com")).c_str());
 
-		if (!FileExist(Combine(TFTPRootDir, std::string("Boot\\x86\\default.bcd"))))
+		if (!FileExist(Combine(this->TFTPRootDir, std::string("Boot\\x86\\default.bcd"))))
 			printf("[W] File not found: %s\n(Put this file in the expected Directory).\n",
-				Combine(TFTPRootDir, std::string("Boot\\x86\\default.bcd")).c_str());
+				Combine(this->TFTPRootDir, std::string("Boot\\x86\\default.bcd")).c_str());
 
-		if (!FileExist(Combine(TFTPRootDir, std::string("Boot\\x64\\default.bcd"))))
+		if (!FileExist(Combine(this->TFTPRootDir, std::string("Boot\\x64\\default.bcd"))))
 			printf("[W] File not found: %s\n(Put this file in the expected Directory).\n",
-				Combine(TFTPRootDir, std::string("Boot\\x64\\default.bcd")).c_str());
+				Combine(this->TFTPRootDir, std::string("Boot\\x64\\default.bcd")).c_str());
 
 
-		this->network = new Namiono::Network::Network(TFTPRootDir);
+		this->network = new Namiono::Network::Network(this->settings, this->TFTPRootDir);
 		this->network->Init();
 
 		return true;
@@ -126,9 +136,8 @@ namespace Namiono
 		printf("[I] Closing...\n");
 		this->network->Close();
 	}
-}
-
-void handle_args(_INT32 data_len, char* Data[])
-{
-	
+	SETTINGS* _Namiono::Get_Settings()
+	{
+		return this->settings;
+	}
 }

@@ -35,36 +35,6 @@ namespace Namiono
 				if (this->get_opcode() == BOOTREQUEST)
 					this->Set_Opcode(DHCP_REQ);
 
-				if (this->get_opcode() == BINL_REQUEST)
-				{
-					memcpy(&ris_opcode, &this->Get_Buffer()[0], sizeof ris_opcode);
-
-					switch (static_cast<Packet_OPCode>(ris_opcode))
-					{
-					case BS32(BINL_RQU):
-						this->Set_Opcode(BINL_RQU);
-						break;
-					case BS32(BINL_RSU):
-						this->Set_Opcode(BINL_RSU);
-						break;
-					case BS32(BINL_CHA):
-						this->Set_Opcode(BINL_CHA);
-						break;
-					case BS32(BINL_REQ):
-						this->Set_Opcode(BINL_REQ);
-						break;
-					default:
-						break;
-					}
-					this->packetLength = this->Get_Buffer()[4];
-				}
-
-				if (this->get_opcode() == BINL_REPLY)
-				{
-					this->Set_Opcode(BINL_RES);
-					this->packetLength = this->Get_Buffer()[4];
-				}
-
 				if (this->get_opcode() == BOOTREPLY)
 					this->Set_Opcode(DHCP_RES);
 
@@ -111,13 +81,13 @@ namespace Namiono
 			case ServiceType::TFTP_SERVER:
 				memcpy(&tftp_op, this->Get_Buffer(), sizeof(_USHORT));
 
-				switch (static_cast<TFTP_OPCODE>(BS16(tftp_op)))
+				switch (static_cast<TFTP_OPCODE>(htons(tftp_op)))
 				{
 				case TFTP_OPCODE::TFTP_Read:
 					this->Set_Opcode(TFTP_RRQ);
 					char filename[255];
-					ClearBuffer(&filename, 255);
-					strncpy(filename, &this->Get_Buffer()[2], 255);
+					ClearBuffer(&filename, sizeof filename);
+					strncpy(filename, &this->Get_Buffer()[2], sizeof filename);
 
 					this->Add_TFTPOption(TFTP_Option("File", std::string(filename)));
 
@@ -160,9 +130,6 @@ namespace Namiono
 					this->Set_Opcode(TFTP_ERR);
 					break;
 				}
-				break;
-			case BINL_REQUEST:
-			case BINL_REPLY:
 				break;
 			default:
 				break;
@@ -228,15 +195,25 @@ namespace Namiono
 
 		Packet::Packet(const ServiceType& serviceType, Packet& packet, const _SIZET& length)
 		{
-			_SIZET maxpktSize = length + 1024;
+			_SIZET maxpktSize = length + static_cast<_SIZET>(1024);
 			this->serviceType = serviceType;
 
 			this->buffer = new char[maxpktSize];
 			ClearBuffer(this->Get_Buffer(), maxpktSize);
 
-			this->Set_Opcode(DHCP_RES);
-
-			memcpy(&this->Get_Buffer()[0], &packet.Get_Buffer()[0], maxpktSize);
+			switch (packet.get_opcode())
+			{
+			case BOOTREPLY:
+				this->Set_Opcode(DHCP_RES);
+				break;
+			case BOOTREQUEST:
+				this->Set_Opcode(DHCP_REQ);
+				break;
+			default:
+				break;
+			}
+			
+			memcpy(&this->Get_Buffer()[0], &packet.Get_Buffer()[0], packet.get_Length());
 			this->packetLength = maxpktSize;
 
 			for (_SIZET i = 240; i < this->get_Length(); i++)
@@ -353,7 +330,7 @@ namespace Namiono
 
 		void Packet::Set_Block(const _USHORT block)
 		{
-			_USHORT blk = BS16(block);
+			_USHORT blk = htons(block);
 			memcpy(&this->Get_Buffer()[sizeof(_USHORT)],
 				&blk, sizeof(_USHORT));
 		}
@@ -362,7 +339,7 @@ namespace Namiono
 		{
 			_USHORT blk = 0;
 			memcpy(&blk, &this->Get_Buffer()[sizeof(_USHORT)], sizeof blk);
-			return BS16(blk);
+			return htons(blk);
 		}
 
 		void Packet::Dump()
@@ -489,25 +466,25 @@ namespace Namiono
 				this->set_cookie();
 				break;
 			case TFTP_DAT:
-				Write(static_cast<_USHORT>(BS16(3)), 0);
+				Write(static_cast<_USHORT>(htons(3)), 0);
 				break;
 			case TFTP_RRQ:
-				Write(static_cast<_USHORT>(BS16(1)), 0);
+				Write(static_cast<_USHORT>(htons(1)), 0);
 				break;
 			case TFTP_ACK:
-				Write(static_cast<_USHORT>(BS16(4)), 0);
+				Write(static_cast<_USHORT>(htons(4)), 0);
 				break;
 			case TFTP_ERR:
-				Write(static_cast<_USHORT>(BS16(5)), 0);
+				Write(static_cast<_USHORT>(htons(5)), 0);
 				break;
 			case TFTP_OACK:
-				Write(static_cast<_USHORT>(BS16(6)), 0);
+				Write(static_cast<_USHORT>(htons(6)), 0);
 				break;
 			case BINL_RQU:
 				Write(static_cast<_ULONG>(BINL_RQU), 0);
 				break;
 			case BINL_RSU:
-				Write(static_cast<_ULONG>(BS32(BINL_RQU)), 0);
+				Write(static_cast<_ULONG>(BINL_RQU), 0);
 				break;
 			case BINL_CHA:
 				Write(static_cast<_ULONG>(BINL_CHA), 0);
@@ -605,7 +582,7 @@ namespace Namiono
 
 		void Packet::set_flags(const DHCP_FLAGS& flags)
 		{
-			Write(static_cast<_USHORT>(flags), 10);
+			Write(static_cast<_USHORT>(htons(flags)), 10);
 		}
 
 		DHCP_FLAGS Packet::get_flags()
@@ -675,9 +652,27 @@ namespace Namiono
 
 		void Packet::get_hwaddress(char* out, _SIZET length)
 		{
-			ClearBuffer(&out, length);
+			ClearBuffer(out, length);
 
-			Read(&out, length, 28);
+			Read(out, length, 28);
+		}
+
+		std::string Packet::get_hwaddress()
+		{
+			_SIZET _length = this->get_hwlength();
+			char* out = new char[_length];
+			ClearBuffer(out, _length);
+			std::string tmp = "";
+
+			
+			Read(out, _length, 28);
+			
+			tmp = Functions::MacAsString(out, _length);
+			
+			delete[] out;
+			out = nullptr;
+
+			return tmp;
 		}
 
 		void Packet::set_servername(const std::string& sname)
@@ -744,7 +739,7 @@ namespace Namiono
 			else
 			{
 				char* filname = new char[length];
-				ClearBuffer(&filname, length);
+				ClearBuffer(filname, length);
 
 				memcpy(&filname, &this->Get_Buffer()[startpos], length);
 

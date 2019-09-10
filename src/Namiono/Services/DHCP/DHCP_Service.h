@@ -12,25 +12,23 @@ namespace Namiono
 	{
 		class DHCP_Service : public Service {
 		public:
-			DHCP_Service(const std::vector<_IPADDR>& upstreamServers);
+			DHCP_Service(SETTINGS* settings, const std::vector<_IPADDR>& upstreamServers);
 
-			virtual void Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, int iface,
+			virtual void Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
 				Namiono::Network::Client* client, Namiono::Network::Packet* packet);
 
-			void Handle_Request_Request(const ServiceType& type, Namiono::Network::Server* server, int iface,
+			void Handle_DHCP_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
 				Namiono::Network::Client* client, Namiono::Network::Packet* packet);
 
-			
-
-			void Handle_DHCP_Response(const ServiceType& type, Namiono::Network::Server* server, int iface,
-				Namiono::Network::Client* client, Namiono::Network::Packet* packet);
-
-			void Handle_Discover_Request(const ServiceType& type, Namiono::Network::Server* server, int iface,
+			void Handle_DHCP_Response(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
 				Namiono::Network::Client* client, Namiono::Network::Packet* packet);
 
 			~DHCP_Service();
 		private:
 			std::vector<_IPADDR> upstreamServers;
+			std::map<std::string, DHCP_RELAYSESSION> relaySessions;
+
+			SETTINGS* settings;
 		};
 	}
 }

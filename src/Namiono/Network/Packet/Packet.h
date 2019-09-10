@@ -82,6 +82,8 @@ namespace Namiono
 			void set_hwaddress(const void* mac);
 			void get_hwaddress(char* out, _SIZET length);
 
+			std::string get_hwaddress();
+
 			void set_servername(const std::string& sname);
 			std::string get_servername();
 

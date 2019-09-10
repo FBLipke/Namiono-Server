@@ -18,15 +18,12 @@ namespace Namiono
 {
 	namespace Network
 	{
-#ifndef _WIn32
-		int GetDefaultGw(_IPADDR& gw);
-#endif
-
 		class Server
 		{
 		public:
 			Server();
-			Server(std::vector<_IPADDR>* addrList, std::function<void(ServiceType, Server*, int, Client*, Packet*)> cb);
+			Server(SETTINGS* settings, std::vector<_IPADDR>* addrList, std::function<void(ServiceType, Server*, _INT32, Client*, Packet*)> cb);
+			void Add_Interface(const std::string& name, const _INT32& index, const _IPADDR& address, const _IPADDR& netmask, const _IPADDR& gateway = 0);
 
 			virtual ~Server();
 
@@ -34,13 +31,11 @@ namespace Namiono
 			void Remove_Client(const std::string & ident);
 			bool Start();
 
-			int Get_Interface_by_Address(const _IPADDR & address);
+			int Get_Interface_by_Address(const std::string& mac, const ServiceType& type, const _IPADDR& address);
 
-			int Get_Interface_by_Mac(const std::string& mac, const _IPADDR& relayIP);
+			void Send(const ServiceType& type, int iface, Client* client);
 
-			void Send(int iface, Client* client);
-
-			Iface * Get_Interface(const int & id);
+			Iface * Get_Interface(const ServiceType& type, const _INT32& id);
 
 			bool Listen(std::vector<std::thread>* threads);
 
@@ -48,21 +43,27 @@ namespace Namiono
 
 			bool Has_Client(const std::string & key);
 
-			Client * Add_Client(const ServiceType& t, const sockaddr_in & remote);
+			Client * Add_Client(const ServiceType& t, const sockaddr_in & remote, Packet* packet);
 
 			std::vector<Iface>& Get_Interfaces();
 
 			bool Is_Running();
 			fd_set& Get_Read_Descriptors();
+			fd_set& Get_Write_Descriptors();
+			fd_set& Get_Except_Descriptors();
 
-			std::function<void(ServiceType, Server*, int, Client*, Packet*)> callback;
+			std::function<void(ServiceType, Server*, _INT32, Client*, Packet*)> callback;
 		private:
 			bool started = false;
 			Server* global_srv_ptr = nullptr;
 			fd_set master_read;
+			fd_set master_write;
+			fd_set master_except;
+
+			SETTINGS* settings;
+
 			std::vector<Iface> Interfaces;
 			std::map<std::string, Client*> clients;
-
 		};
 	}
 }

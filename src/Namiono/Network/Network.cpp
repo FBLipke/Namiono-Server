@@ -19,7 +19,7 @@ namespace Namiono
 	{
 		void Handle_Request(ServiceType type, Server* server, int iface, Client* client, Packet* packet)
 		{
-			services.at(type)->Handle_Service_Request(type, server, iface, client, packet);
+			services.at(client->Get_ServiceType())->Handle_Service_Request(type, server, iface, client, packet);
 		}
 
 #ifdef _WIN32
@@ -36,7 +36,7 @@ namespace Namiono
 			return WSACleanup() == 0;
 		}
 #endif
-		Network::Network(const std::string& rootDir)
+		Network::Network(SETTINGS* settings, const std::string& rootDir)
 		{
 #ifdef _WIN32
 			if (!Init_Winsock(2, 2))
@@ -45,10 +45,12 @@ namespace Namiono
 				return;
 			}
 #endif
+			this->settings = settings;
 
 			using namespace Namiono::Services;
+			std::string _serverlistFile = Combine(this->settings->CONFDIR, "servers.txt");
 
-			FILE* fil = fopen(Combine(SETTINGS.CONFDIR, "servers.txt").c_str(), "r");
+			FILE* fil = fopen(_serverlistFile.c_str(), "r");
 
 			if (fil != nullptr)
 			{
@@ -57,9 +59,9 @@ namespace Namiono
 				while (fgets(line, sizeof line, fil) != nullptr)
 				{
 					char desc[64];
-					ClearBuffer(desc, 64);
+					ClearBuffer(desc, sizeof desc);
 					char addr[1024];
-					ClearBuffer(addr, 1024);
+					ClearBuffer(addr, sizeof addr);
 
 					std::vector<_IPADDR> addrs;
 
@@ -73,7 +75,7 @@ namespace Namiono
 							addrs.emplace_back(inet_addr(_addrs.at(i).c_str()));
 						}
 					}
-					
+
 					for (_SIZET i = 0; i < addrs.size(); i++)
 					{
 						Get_UpstreamServers()->emplace_back(addrs.at(i));
@@ -82,12 +84,14 @@ namespace Namiono
 
 				fclose(fil);
 			}
+			else
+				printf("%s not found!\n", _serverlistFile.c_str());
 
-			services.emplace(DHCP_SERVER, new DHCP_Service(*Get_UpstreamServers()));
-			services.emplace(BINL_SERVER, new ProxyDHCP_Service());
-			services.emplace(TFTP_SERVER, new TFTP_Service(rootDir));
+			services.emplace(DHCP_SERVER, new DHCP_Service(this->settings, *Get_UpstreamServers()));
+			services.emplace(BINL_SERVER, new ProxyDHCP_Service(this->settings));
+			services.emplace(TFTP_SERVER, new TFTP_Service(this->settings, rootDir));
 
-			servers.emplace_back(&addresses, Handle_Request);
+			servers.emplace_back(settings, &addresses, Handle_Request);
 		}
 
 
@@ -151,8 +155,6 @@ namespace Namiono
 			{
 				servers.at(i).Close();
 			}
-
-
 		}
 	}
 }

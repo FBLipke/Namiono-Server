@@ -17,14 +17,32 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define NAMIONO_NAMIONO_H_
 
 #include <Environment/environment.h>
-#include <Environment/Defines.h>
+
+#include <Namiono/Defines/Namiono_Defines.h>
+#include <Namiono/Defines/DHCP/RBCP/RBCP_Defines.h>
+#include <Namiono/Defines/DHCP/BSDP/BSDP_Defines.h>
+#include <Namiono/Defines/DHCP/IPXE/IPXE_Defines.h>
+#include <Namiono/Defines/DHCP/WDS/WDS_Defines.h>
+#include <Namiono/Defines/DHCP/DHCP_Defines.h>
+#include <Namiono/Defines/TFTP/TFTP_Defines.h>
+
 #include <Namiono/Common/Functions.h>
 #include <Namiono/Common/Filesystem.h>
 
 using namespace Namiono::Common;
 
 #include <Namiono/Network/Packet/Packet.h>
+
+#include <Namiono/Network/Client/DHCP/WDS/WDS_Client.h>
+#include <Namiono/Network/Client/DHCP/BSDP/BSDP_Client.h>
+#include <Namiono/Network/Client/DHCP/RBCP/RBCP_Client.h>
+#include <Namiono/Network/Client/DHCP/IPXE/IPXE_Client.h>
+#include <Namiono/Network/Client/DHCP/DHCP_Client.h>
+
+#include <Namiono/Network/Client/TFTP/TFTP_Client.h>
+
 #include <Namiono/Network/Client/Client.h>
+
 #include <Namiono/Network/Server/Interface.h>
 #include <Namiono/Network/Server/Server.h>
 
@@ -42,7 +60,7 @@ namespace Namiono
 	{
 	public:
 		_Namiono() {};
-		_Namiono(int argc, char* argv[]);
+		_Namiono(_INT32 argc, char* argv[]);
 		~_Namiono();
 
 		bool Init();
@@ -51,7 +69,11 @@ namespace Namiono
 		void Heartbeat();
 		void Close();
 
+		SETTINGS* Get_Settings();
+
 	private:
+		SETTINGS* settings;
+
 		std::string TFTPRootDir;
 		Namiono::Network::Network* network = nullptr;
 	};

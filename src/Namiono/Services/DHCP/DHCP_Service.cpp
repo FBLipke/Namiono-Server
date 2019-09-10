@@ -16,30 +16,35 @@ namespace Namiono
 {
 	namespace Services
 	{
-		DHCP_Service::DHCP_Service(const std::vector<_IPADDR>& upstreamServers)
+		DHCP_Service::DHCP_Service(SETTINGS* settings, const std::vector<_IPADDR>& upstreamServers)
 		{
 			this->upstreamServers = upstreamServers;
+			this->settings = settings;
 		}
 
-		void DHCP_Service::Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, int iface,
+		void DHCP_Service::Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
+			if (type != client->Get_ServiceType())
+			{
+				server->Remove_Client(client->Get_ID());
+				return;
+			}
+
 			Network::Network::Get_BootServers()->clear();
 			std::vector<_IPADDR> addresses;
-
-
 			if (packet->Has_DHCPOption(60))
 			{
 				if (Functions::Compare(packet->Get_DHCPOption(static_cast<_BYTE>(60)).Value, "PXEClient", 9))
-					client->dhcp->Set_Vendor(PXEClient);
+					client->Get_DHCP_Client()->Set_Vendor(PXEClient);
 
 				if (Functions::Compare(packet->Get_DHCPOption(static_cast<_BYTE>(60)).Value, "PXEServer", 9))
-					client->dhcp->Set_Vendor(PXEServer);
+					client->Get_DHCP_Client()->Set_Vendor(PXEServer);
 
 				if (Functions::Compare(packet->Get_DHCPOption(static_cast<_BYTE>(60)).Value, "AAPLBSDPC", 9))
 				{
-					client->dhcp->Set_Vendor(AAPLBSDPC);
-					client->dhcp->SetIsBSDPRequest(true);
+					client->Get_DHCP_Client()->Set_Vendor(AAPLBSDPC);
+					client->Get_DHCP_Client()->SetIsBSDPRequest(true);
 				}
 			}
 
@@ -48,41 +53,51 @@ namespace Namiono
 			case BOOTREQUEST:
 				if (!packet->Has_DHCPOption(53))
 					return;
-				printf("[I] DHCP : Request on %s...\n", Functions::AddressStr(
-					server->Get_Interface(iface)->Get_IPAddress()).c_str());
+
+				printf("[I] DHCP : Request on %s (from %s)...\n", Functions::AddressStr(
+					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+					packet->get_hwaddress().c_str());
 
 				switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
 				{
 				case DISCOVER:
-					this->Handle_Discover_Request(type, server, iface, client, packet);
-					break;
 				case INFORM:
 				case REQUEST:
-					this->Handle_Request_Request(type, server, iface, client, packet);
+					this->Handle_DHCP_Request(type, server, iface, client, packet);
 					break;
 				default:
-					server->Remove_Client(client->Get_ID());
 					break;
 				}
 				break;
 			case BOOTREPLY:
-
 				if (!packet->Has_DHCPOption(53))
 					return;
+				client->Get_DHCP_Client()->SetIsWDSResponse(packet->Has_DHCPOption(250));
 
-				printf("[I] DHCP : Response on %s...\n", Functions::AddressStr(
-					server->Get_Interface(iface)->Get_IPAddress()).c_str());
+				printf("[I] DHCP : Response on %s (from %s) for %s...\n", Functions::AddressStr(
+					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+					Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr).c_str(),
+					packet->get_hwaddress().c_str());
 
 				for (Iface& iface : server->Get_Interfaces())
-					addresses.emplace_back(iface.Get_IPAddress());
+					if (iface.Get_ServiceType() == type)
+						addresses.emplace_back(iface.Get_IPAddress());
 
-				DHCP_Functions::Add_BootServer(Network::Network::Get_BootServers(), Functions::Get_Hostname(), addresses);
-				DHCP_Functions::Add_BootServer_To_ServerList(Network::Network::Get_BootServers(), server, client, packet->get_servername());
-
+				DHCP_Functions::Add_BootServer(Network::Network::Get_BootServers(), Functions::Get_Hostname(), addresses, "");
 				switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
 				{
 				case ACK:
 				case OFFER:
+					switch (client->Get_DHCP_Client()->Get_Vendor())
+					{
+					case PXEClient:
+						DHCP_Functions::Add_BootServer_To_ServerList(Network::Network::Get_BootServers(), server, client, packet->get_servername(),
+							packet->get_filename());
+						break;
+					default:
+						break;
+					}
+
 					this->Handle_DHCP_Response(type, server, iface, client, packet);
 					break;
 				default:
@@ -91,92 +106,92 @@ namespace Namiono
 				break;
 			}
 
-			if (client->dhcp->Get_State() == CLIENTSTATE::DHCP_DONE ||
-				client->dhcp->Get_State() == CLIENTSTATE::DHCP_ABORT)
+			if (client->Get_DHCP_Client()->Get_State() == CLIENTSTATE::DHCP_DONE ||
+				client->Get_DHCP_Client()->Get_State() == CLIENTSTATE::DHCP_SERVERRESPONSE ||
+				client->Get_DHCP_Client()->Get_State() == CLIENTSTATE::DHCP_ABORT)
 				server->Remove_Client(client->Get_ID());
-
 		}
 
-		void DHCP_Service::Handle_Discover_Request(const ServiceType& type, Namiono::Network::Server* server, int iface,
+		void DHCP_Service::Handle_DHCP_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
-			if (upstreamServers.size() == 0)
+			/*
+				In Situations where we get relayed packets we should store the other Relay Agent Information,
+				so that we can correctly relay the packet to the other Relay Agent. This is needed when we get
+				the response from the upstream server. In the Packet all Relay Agent has added RID and CID (82)
+
+				We should store these too so that the downstream relay agent doesnt gets confused
+				when we relay back the packet. and put ours in the packet.
+			*/
+
+			client->Get_DHCP_Client()->SetIsRelayedPacket(packet->get_relayIP() != 0);
+			if (client->Get_DHCP_Client()->GetIsRelayedPacket())
 			{
-				printf("[W] DHCP : No upstreamservers available!\n");
-				return;
+				if (this->relaySessions.find(client->Get_ID()) == this->relaySessions.end())
+				{
+					this->relaySessions.emplace(client->Get_ID(), DHCP_RELAYSESSION(
+						client->Get_Client_Hint().sin_addr.s_addr, packet->get_relayIP(), iface));
+				}
 			}
 
+			client->Get_DHCP_Client()->Set_State(CLIENTSTATE::DHCP_RELAY);
 			client->response = new Packet(type, *packet, packet->get_Length());
-			DHCP_Functions::Relay_Request_Packet(SETTINGS.UPSTREAMSERVER, 67, type, server, iface, client);
 
-			
+			for (_SIZET i = 0; i < this->upstreamServers.size(); i++)
+			{
+				if (client->Get_ServiceType() == server->Get_Interface(type, iface)->Get_ServiceType())
+					DHCP_Functions::Relay_Request_Packet(this->upstreamServers.at(i), 67, type, server, iface, client);
+			}
+
 			delete client->response;
 			client->response = nullptr;
 		}
 
-		void DHCP_Service::Handle_Request_Request(const ServiceType& type, Namiono::Network::Server* server, int iface,
-			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
-		{
-			if (upstreamServers.size() == 0)
-			{
-				printf("[W] DHCP : No upstreamservers available!\n");
-				return;
-			}
-
-			client->response = new Packet(type, *packet, packet->get_Length());
-			DHCP_Functions::Relay_Request_Packet(SETTINGS.UPSTREAMSERVER, 67, type, server, iface, client);
-
-			
-			delete client->response;
-			client->response = nullptr;
-		}
-
-		void DHCP_Service::Handle_DHCP_Response(const ServiceType& type, Namiono::Network::Server* server, int iface,
+		void DHCP_Service::Handle_DHCP_Response(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
 			client->response = new Packet(type, *packet, packet->get_Length());
 			
-			switch (client->dhcp->Get_Vendor())
+			switch (client->Get_DHCP_Client()->Get_Vendor())
 			{
 			case PXEClient:
-				client->dhcp->SetIsWDSRequest(packet->Has_DHCPOption(static_cast<_BYTE>(250)));
-				if (SETTINGS.PXEBOOTMENUE == 1)
+				if (settings->PXEBOOTMENUE == 1)
 				{
 					DHCP_Functions::Create_BootServerList(Network::Network::Get_BootServers(), client);
-					DHCP_Functions::Generate_Bootmenu_From_ServerList(Network::Network::Get_BootServers(), client);
+					DHCP_Functions::Generate_Bootmenu_From_ServerList(settings, Network::Network::Get_BootServers(), client);
 
-					// client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_DISCOVERY_CONTROL), static_cast<_BYTE>(SETTINGS.DISCOVERY_MODE));
+					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_DISCOVERY_MCADDR),
+						server->Get_Interface(type, iface)->Get_MulticastIP());
 
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_DISCOVERY_MCADDR),
-						server->Get_Interface(iface)->Get_MulticastIP());
+					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MTFTP_IP_ADDR),
+						server->Get_Interface(type, iface)->Get_MulticastIP());
 
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_MTFTP_IP_ADDR),
-						server->Get_Interface(iface)->Get_MulticastIP());
+					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MTFTP_SERVER_PORT), settings->MTFTP_SPORT);
+					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MTFTP_CLIENT_PORT), settings->MTFTP_CPORT);
 
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_MTFTP_SERVER_PORT), SETTINGS.MTFTP_SPORT);
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_MTFTP_CLIENT_PORT), SETTINGS.MTFTP_CPORT);
+					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_DOMAIN), settings->NBDOMAIN);
+					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_SERVER), server->Get_Interface(type, iface)->Get_ServerName());
+					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_DISCOVERY), static_cast<_BYTE>(1));
+					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_CONFIGURED), static_cast<_BYTE>(1));
+					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_VERSION), LE32(static_cast<_UINT>(1)));
+					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_SERIALNO), std::string("Namiono - Server 0.5"));
 
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_DOMAIN), SETTINGS.NBDOMAIN);
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_SERVER), server->Get_Interface(iface)->Get_ServerName());
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_DISCOVERY), static_cast<_BYTE>(1));
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_CONFIGURED), static_cast<_BYTE>(1));
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_VERSION), BS32(static_cast<_UINT>(1)));
-					client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_LCM_SERIALNO), std::string("Namiono - Server 0.5"));
-
-					if (client->dhcp->vendorOpts->size() != 0)
+					if (client->Get_DHCP_Client()->Get_VendorOpts()->size() != 0)
 						client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(43),
-							*client->dhcp->vendorOpts));
+							*client->Get_DHCP_Client()->Get_VendorOpts()));
 				}
 
-				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252), client->dhcp->wds->GetBCDfile()));
+				if (client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile().size() != 0 && !client->Get_DHCP_Client()->GetIsWDSResponse())
+					client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252), client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
 				break;
 			default:
 				break;
 			}
 
+			client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(255)));
 
-			DHCP_Functions::Relay_Response_Packet(type, server, iface, client);
-
+			DHCP_Functions::Relay_Response_Packet(&this->relaySessions, type, server, iface, client);
+			client->Get_DHCP_Client()->Set_State(DHCP_DONE);
 			delete client->response;
 			client->response = nullptr;
 		}

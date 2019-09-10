@@ -8,7 +8,7 @@ DHCP_Functions::~DHCP_Functions()
 {
 }
 
-void DHCP_Functions::Generate_Bootmenu_From_ServerList(std::vector<BootServerEntry>* serverlist, Client* client)
+void DHCP_Functions::Generate_Bootmenu_From_ServerList(SETTINGS* settings, std::vector<BootServerEntry>* serverlist, Client* client)
 {
 	if (serverlist->size() == 0)
 		return;
@@ -20,16 +20,17 @@ void DHCP_Functions::Generate_Bootmenu_From_ServerList(std::vector<BootServerEnt
 
 	/* id */
 	_USHORT id = 0;
+	_USHORT _LE_ID = LE16(id);
 	memcpy(&menubuffer[offset], &id, sizeof id);
 	offset += sizeof id;
 
 	/* desc len */
-	_BYTE length = static_cast<_BYTE>(SETTINGS.PXEHDDDESC.size());
+	_BYTE length = static_cast<_BYTE>(settings->PXEHDDDESC.size());
 	memcpy(&menubuffer[offset], &length, sizeof length);
 	offset += sizeof length;
 
 	/* desc */
-	memcpy(&menubuffer[offset], SETTINGS.PXEHDDDESC.c_str(), length);
+	memcpy(&menubuffer[offset], settings->PXEHDDDESC.c_str(), length);
 	offset += length;
 
 	for (_USHORT i = 0; i < serverlist->size(); i++)
@@ -39,8 +40,9 @@ void DHCP_Functions::Generate_Bootmenu_From_ServerList(std::vector<BootServerEnt
 
 		/* id */
 		id = serverlist->at(i).Ident;
-		memcpy(&menubuffer[offset], &id, sizeof id);
-		offset += sizeof id;
+		_LE_ID = LE16(id);
+		memcpy(&menubuffer[offset], &_LE_ID, sizeof _LE_ID);
+		offset += sizeof _LE_ID;
 
 		/* desc len */
 		length = static_cast<_BYTE>(strlen(serverlist->at(i).Description.c_str()));
@@ -52,13 +54,13 @@ void DHCP_Functions::Generate_Bootmenu_From_ServerList(std::vector<BootServerEnt
 		offset += length;
 	}
 
-	client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_BOOT_MENU),
+	client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_BOOT_MENU),
 		static_cast<_BYTE>(offset), menubuffer);
 
 	/* Menue prompt */
-	_BYTE timeout = SETTINGS.PXEPROMPTTIMEOUT;
+	_BYTE timeout = settings->PXEPROMPTTIMEOUT;
 	const std::string prompt = timeout != static_cast<_BYTE>(0xff) ?
-		SETTINGS.PXEPROMP : std::string("These servers (*) responded to your request...");
+		settings->PXEPROMP : std::string("These servers (*) responded to your request...");
 
 	char* promptbuffer = new char[prompt.size() + 1];
 	ClearBuffer(promptbuffer, prompt.size() + 1);
@@ -72,7 +74,7 @@ void DHCP_Functions::Generate_Bootmenu_From_ServerList(std::vector<BootServerEnt
 
 	offset += static_cast<_SIZET>(prompt.size());
 
-	client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_MENU_PROMPT),
+	client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MENU_PROMPT),
 		static_cast<_BYTE>(offset), promptbuffer);
 
 	delete[] promptbuffer;
@@ -82,7 +84,6 @@ void DHCP_Functions::Generate_Bootmenu_From_ServerList(std::vector<BootServerEnt
 void DHCP_Functions::Create_BootServerList(std::vector<BootServerEntry>* serverlist, Client* client)
 {
 	_BYTE offset = 0;
-	_BYTE ipcount = 0;
 	char* serverbuffer = new char[1024];
 	ClearBuffer(serverbuffer, 1024);
 
@@ -95,11 +96,13 @@ void DHCP_Functions::Create_BootServerList(std::vector<BootServerEntry>* serverl
 			serverlist->at(i).Description.size() == 0)
 			continue;
 
-		_USHORT id = htons(serverlist->at(i).Ident);
-		memcpy(&serverbuffer[offset], &id, sizeof id);
-		offset += sizeof id;
 
-		ipcount = static_cast<_BYTE>(serverlist->at(i).Addresses.size());
+		_USHORT id = serverlist->at(i).Ident;
+		_USHORT _LE_ID = LE16(id);
+		memcpy(&serverbuffer[offset], &_LE_ID, sizeof _LE_ID);
+		offset += sizeof _LE_ID;
+
+		_BYTE ipcount = static_cast<_BYTE>(serverlist->at(i).Addresses.size());
 
 		memcpy(&serverbuffer[offset], &ipcount, sizeof ipcount);
 		offset += sizeof ipcount;
@@ -111,7 +114,7 @@ void DHCP_Functions::Create_BootServerList(std::vector<BootServerEntry>* serverl
 		}
 	}
 
-	client->dhcp->vendorOpts->emplace_back(static_cast<_BYTE>(PXE_BOOT_SERVERS),
+	client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_BOOT_SERVERS),
 		static_cast<_BYTE>(offset), serverbuffer);
 
 	delete[] serverbuffer;
@@ -119,28 +122,11 @@ void DHCP_Functions::Create_BootServerList(std::vector<BootServerEntry>* serverl
 }
 
 void DHCP_Functions::Relay_Request_Packet(const _IPADDR& addr, const _USHORT& port,
-	const ServiceType& type, Server * server, int iface, Client * client)
+	const ServiceType& type, Server * server, _INT32 iface, Client * client)
 {
 	/* Client request */
-	client->dhcp->Set_State(CLIENTSTATE::DHCP_RELAY);
+	client->Get_DHCP_Client()->Set_State(CLIENTSTATE::DHCP_RELAY);
 	client->Set_Relay_Hint(addr, port);
-	client->response->set_relayIP(server->Get_Interface(iface)->Get_IPAddress());
-	DHCP_Functions::Handle_Relayed_Packet(server, iface, client->response);
-
-	std::string mac = Functions::MacAsString(&client->response->Get_Buffer()[28],
-		static_cast<_SIZET>(client->response->get_hwlength())).c_str();
-
-	/*
-		Store the mac in our cache on the incoming interface, so that we can later
-		identify the Interface from where we got the request.
-		
-		The Interface id is already stored in option 82-> [1] but it must not be the right one.
-	*/
-
-	if (!server->Get_Interface(iface)->Has_ARPEntry(mac))
-	{
-		server->Get_Interface(iface)->Add_ARPEntry(mac);
-	}
 
 	/*
 	Put the IP Address from the interface which received the request in the giaddr field...
@@ -149,7 +135,23 @@ void DHCP_Functions::Relay_Request_Packet(const _IPADDR& addr, const _USHORT& po
 	We need also the giaddr to identify the interface... when receiving responses...
 	*/
 
-	switch (client->dhcp->Get_Vendor())
+	client->response->set_relayIP(server->Get_Interface(type, iface)->Get_IPAddress());
+	DHCP_Functions::Handle_Relayed_Packet(type, server, iface, client->response);
+
+	std::string mac = Functions::MacAsString(&client->response->Get_Buffer()[28],
+		static_cast<_SIZET>(client->response->get_hwlength())).c_str();
+
+	/*
+		Store the mac in our cache on the incoming interface, so that we can later
+		identify the Interface from where we got the request.
+
+		The Interface id is already stored in option 82-> [1] but it must not be the right one.
+	*/
+
+	if (!server->Get_Interface(type, iface)->Has_ARPEntry(mac))
+		server->Get_Interface(type, iface)->Add_ARPEntry(mac);
+
+	switch (client->Get_DHCP_Client()->Get_Vendor())
 	{
 	case PXEClient:
 		client->response->Add_DHCPOption(DHCP_Option(54, client->Get_Relay_Hint().sin_addr.s_addr));
@@ -163,104 +165,131 @@ void DHCP_Functions::Relay_Request_Packet(const _IPADDR& addr, const _USHORT& po
 	client->response->Commit();
 
 	for (Iface & iface : server->Get_Interfaces())
-		server->Send(iface.Get_Id(), client);
+		server->Send(type, iface.Get_Id(), client);
 }
-_INT32 DHCP_Functions::Handle_Relayed_Packet(Server * server, int iface, Packet * packet)
+
+_INT32 DHCP_Functions::Handle_Relayed_Packet(const ServiceType& type, Server * server, _INT32 iface, Packet * packet)
 {
-	_INT32 _interface = iface;
-	std::string remoteid;
+	std::vector<DHCP_Option> relayOptions;
 
 	if (packet->Has_DHCPOption(static_cast<_BYTE>(82)))
 	{
-		printf("[D] Got Relay Agent Options:\n");
+		packet->Get_DHCPOption(82).Get_SubOptions(relayOptions);
+		_INT32 _interface = -1;
+		std::string remoteid = "";
 
-		std::vector<DHCP_Option> options;
-		packet->Get_DHCPOption(82).Get_SubOptions(options);
-
-		for (_SIZET i = 0; i < options.size(); i++)
+		for (_SIZET i = 0; i < relayOptions.size(); i++)
 		{
-			if (options.at(i).Option == CircuitID)
+			if (relayOptions.at(i).Option == CircuitID)
 			{
-				_interface = options.at(i).Get_Value_As_Byte();
+				_interface = relayOptions.at(i).Get_Value_As_Byte();
 			}
 
-			if (options.at(i).Option == RemoteID)
+			if (relayOptions.at(i).Option == RemoteID)
 			{
-				remoteid = options.at(i).Get_Value_As_String();
+				remoteid = relayOptions.at(i).Get_Value_As_String();
 			}
 		}
 
 		packet->Remove_DHCPOption(static_cast<_BYTE>(82));
+
+		if (_interface == -1)
+		{
+			_interface = server->Get_Interface_by_Address(packet->get_hwaddress(), type, packet->get_relayIP());
+
+			if (_interface == -1)
+				return -1;
+			else
+				return _interface;
+		}
+		else
+			return _interface;
 	}
 	else
 	{
-		std::vector<DHCP_Option> relayOptions;
-		relayOptions.emplace_back(DHCP_Option(static_cast<_BYTE>(RemoteID), server->Get_Interface(iface)->Get_ServerName()));
-		relayOptions.emplace_back(DHCP_Option(static_cast<_BYTE>(CircuitID), static_cast<_BYTE>(iface)));
+		relayOptions.emplace_back(DHCP_Option(static_cast<_BYTE>(RemoteID),
+			server->Get_Interface(type, iface)->Get_ServerName()));
+
+		relayOptions.emplace_back(DHCP_Option(static_cast<_BYTE>(CircuitID),
+			static_cast<_BYTE>(iface)));
 
 		packet->Add_DHCPOption(DHCP_Option(82, relayOptions));
 	}
 
-	return _interface;
+	return -1;
 }
 
-void DHCP_Functions::Relay_Response_Packet(const ServiceType& type, Server * server, int iface, Client * client)
+void DHCP_Functions::Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSION>* relaySessions,
+	const ServiceType& type, Server * server, _INT32 iface, Client * client)
 {
-	/* Server response */
-	client->Set_Client_Hint(INADDR_BROADCAST, 68);
-	client->response->set_flags(DHCP_FLAGS::Broadcast);
-	
-	std::string mac = Functions::MacAsString(&client->response->Get_Buffer()[28],
-		static_cast<_SIZET>(client->response->get_hwlength())).c_str();
+	_INT32 _outgoing_iface = -1;
 
-	int _outgoing_iface = server->Get_Interface_by_Address(client->response->get_relayIP());
-	
-	/* Send it out to the receiving Interface ... anyway ... */
-	if (_outgoing_iface == -1)
+	if (relaySessions->find(client->Get_ID()) == relaySessions->end())
 	{
-		printf("[W] Can not find Interface with address %s...\n",
-			Functions::AddressStr(client->response->get_relayIP()).c_str());
-
-		_outgoing_iface = DHCP_Functions::Handle_Relayed_Packet(server, iface, client->response);
+		_outgoing_iface = DHCP_Functions::Handle_Relayed_Packet(type, server, iface, client->response);
+		client->Set_Client_Hint(INADDR_BROADCAST, 68);
+		client->response->set_flags(DHCP_FLAGS::Broadcast);
+	}
+	else
+	{
+		client->response->set_relayIP(relaySessions->at(client->Get_ID()).Get_RelayIP());
+		client->Set_Client_Hint(relaySessions->at(client->Get_ID()).Get_RemoteIP(), 67);
+		_outgoing_iface = relaySessions->at(client->Get_ID()).Get_Interface();
+		
+		client->response->set_flags(DHCP_FLAGS::Unicast);
+		
+		relaySessions->erase(client->Get_ID());
 	}
 
-	switch (client->dhcp->Get_Vendor())
+	if (_outgoing_iface == -1)
+		return;
+
+	switch (type)
 	{
-	case PXEClient:
+	case DHCP_SERVER:
 
-		/*
-			Before we respond to the client we should fixup the server in the Packet, So that clients
-			talks to us instead to the upstream server. We leave all other options as they are and adding the
-			responding server to the list of boot servers later, so that the client can boot from the upstream server.
-		*/
 
-		client->response->set_nextIP(server->Get_Interface(_outgoing_iface)->Get_IPAddress());
-		client->response->set_servername(server->Get_Interface(_outgoing_iface)->Get_ServerName());
+		switch (client->Get_DHCP_Client()->Get_Vendor())
+		{
+		case PXEClient:
+			/*
+				Before we respond to the client we should fixup the server in the Packet, So that clients
+				talks to us instead to the upstream server. We leave all other options as they are and adding the
+				responding server to the list of boot servers later, so that the client can also boot from the upstream server.
+			*/
 
-		client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54),
-			static_cast<_ULONG>(server->Get_Interface(iface)->Get_IPAddress())));
+			client->response->set_nextIP(server->Get_Interface(type, _outgoing_iface)->Get_IPAddress());
+			client->response->set_servername(server->Get_Interface(type, _outgoing_iface)->Get_ServerName());
+
+			client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54),
+				static_cast<_ULONG>(server->Get_Interface(type, _outgoing_iface)->Get_IPAddress())));
+			break;
+		default:
+			break;
+		}
 		break;
 	default:
 		break;
 	}
 
-	client->dhcp->Set_State(CLIENTSTATE::DHCP_DONE);
 	client->response->Commit();
-	server->Send(_outgoing_iface, client);
+
+	if (server->Get_Interface(type, _outgoing_iface)->Get_ServiceType() == type)
+		server->Send(type, _outgoing_iface, client);
 }
 
 void DHCP_Functions::Add_BootServer_To_ServerList(std::vector<BootServerEntry>* serverlist,
-	Server* server, Client * client, const std::string& serverName)
+	Server* server, Client * client, const std::string& serverName, const std::string& bootfile)
 {
 	std::vector<_IPADDR> addrs;
-	addrs.emplace_back(client->Get_Client_Hint().sin_addr.s_addr);
+	addrs.emplace_back(client->Get_Server_Hint().sin_addr.s_addr);
 
 	std::string _name = serverName;
 
 	if (_name.size() == 0)
-		_name = Functions::AddressStr(client->Get_Client_Hint().sin_addr.s_addr);
+		_name = Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr);
 
-	DHCP_Functions::Add_BootServer(serverlist, _name, addrs);
+	DHCP_Functions::Add_BootServer(serverlist, std::string("(*) ") + _name, addrs, bootfile);
 }
 
 bool DHCP_Functions::Has_BootServer(std::vector<BootServerEntry>* serverlist, const _USHORT& id)
@@ -273,7 +302,8 @@ bool DHCP_Functions::Has_BootServer(std::vector<BootServerEntry>* serverlist, co
 	return entry != nullptr;
 }
 
-void DHCP_Functions::Add_BootServer(std::vector<BootServerEntry>* serverlist, const std::string& name, const std::vector <_IPADDR>& addresses)
+void DHCP_Functions::Add_BootServer(std::vector<BootServerEntry>* serverlist,
+	const std::string& name, const std::vector <_IPADDR>& addresses, const std::string& bootfile)
 {
 	_USHORT id = static_cast<_USHORT>(serverlist->size() + 1);
 
@@ -284,27 +314,28 @@ void DHCP_Functions::Add_BootServer(std::vector<BootServerEntry>* serverlist, co
 	}
 
 	if (Has_BootServer(serverlist, id))
+	{
+		printf("[D] Bootserver already in the List...\n");
 		return;
+	}
 
-	serverlist->emplace_back(BootServerEntry(id, name, addresses, ""));
+	serverlist->emplace_back(BootServerEntry(id, name, addresses, bootfile.size() == 0 ? "" : bootfile));
 }
 
-void DHCP_Functions::Handle_IPXE_Options(Server * server, int iface, Client * client, Packet * response)
+void DHCP_Functions::Handle_IPXE_Options(Server * server, _INT32 iface, Client * client, Packet * response)
 {
 	std::vector<DHCP_Option> options;
 	response->Get_DHCPOption(static_cast<_BYTE>(175)).Get_SubOptions(options);
 
 	for (_SIZET i = 0; i < options.size(); i++)
 	{
-		IPXE_Options opt = static_cast<IPXE_Options>(options.at(i).Option);
-
-		switch (opt)
+		switch (static_cast<IPXE_Options>(options.at(i).Option))
 		{
 		case IPXE_USERNAME:
-			client->dhcp->ipxe->Set_Username(options.at(i).Get_Value_As_String());
+			client->Get_DHCP_Client()->Get_IPXEClient()->Set_Username(options.at(i).Get_Value_As_String());
 			break;
 		case IPXE_PASSWORD:
-			client->dhcp->ipxe->Set_Password(options.at(i).Get_Value_As_String());
+			client->Get_DHCP_Client()->Get_IPXEClient()->Set_Password(options.at(i).Get_Value_As_String());
 			break;
 		case IPXE_BUSID:
 			break;
@@ -312,35 +343,39 @@ void DHCP_Functions::Handle_IPXE_Options(Server * server, int iface, Client * cl
 	}
 }
 
-void DHCP_Functions::Handle_WDS_Options(Server * server, int iface, Client * client)
+void DHCP_Functions::Handle_WDS_Options(const SETTINGS* settings, const ServiceType& type, Server* server, _INT32 iface, Client * client)
 {
-	// WDS Option -> Used by WDSNBP
+	// WDS Options -> Used by WDSNBP
 	std::vector<DHCP_Option>* wdsOptions = new std::vector<DHCP_Option>();
-	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_NEXT_ACTION), static_cast<_BYTE>(client->dhcp->wds->GetNextAction()));
-	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_REQUEST_ID), static_cast<_ULONG>(BS32(client->dhcp->wds->GetRequestID())));
+	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_NEXT_ACTION), static_cast<_BYTE>(client->Get_DHCP_Client()->Get_WDSClient()->GetNextAction()));
+	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_REQUEST_ID), static_cast<_ULONG>(htonl(client->Get_DHCP_Client()->Get_WDSClient()->GetRequestID())));
 
-	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_POLL_INTERVAL), static_cast<_USHORT>(BS16(client->dhcp->wds->GetPollInterval())));
-	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_POLL_RETRY_COUNT), static_cast<_USHORT>(BS16(client->dhcp->wds->GetRetryCount())));
+	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_POLL_INTERVAL), static_cast<_USHORT>(BS16(client->Get_DHCP_Client()->Get_WDSClient()->GetPollInterval())));
+	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_POLL_RETRY_COUNT), static_cast<_USHORT>(BS16(client->Get_DHCP_Client()->Get_WDSClient()->GetRetryCount())));
 
-	if (client->dhcp->wds->GetNextAction() == REFERRAL)
+	if (settings->WDS_SERVERSELECTION == 1)
 	{
-		client->dhcp->wds->SetReferralServer(server->Get_Interface(iface)->Get_IPAddress());
-		wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_REFERRAL_SERVER), client->dhcp->wds->GetReferalServer());
-		wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_ALLOW_SERVER_SELECTION), static_cast<_BYTE>(1));
+		wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_ALLOW_SERVER_SELECTION), static_cast<_BYTE>(settings->WDS_SERVERSELECTION));
+		wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_PXE_CLIENT_PROMPT), static_cast<_BYTE>(1));
+	}
+	
+	if (client->Get_DHCP_Client()->Get_WDSClient()->GetNextAction() == REFERRAL)
+	{
+		wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_REFERRAL_SERVER), client->Get_DHCP_Client()->Get_WDSClient()->GetReferalServer());
 	}
 
-	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_ACTION_DONE), static_cast<_BYTE>(client->dhcp->wds->GetActionDone()));
+	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_ACTION_DONE), static_cast<_BYTE>(client->Get_DHCP_Client()->Get_WDSClient()->GetActionDone()));
 
-	if (client->dhcp->wds->GetNextAction() == APPROVAL && client->dhcp->wds->GetWDSMessage().size() != 0)
+	if (client->Get_DHCP_Client()->Get_WDSClient()->GetNextAction() == APPROVAL && client->Get_DHCP_Client()->Get_WDSClient()->GetWDSMessage().size() != 0)
 	{
-		wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_MESSAGE), client->dhcp->wds->GetWDSMessage());
+		wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_MESSAGE), client->Get_DHCP_Client()->Get_WDSClient()->GetWDSMessage());
 	}
 
+	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_END));
 	client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(250), *wdsOptions));
-	client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(255)));
 
 	wdsOptions->clear();
 	delete wdsOptions;
-	wdsOptions = nullptr;
 
+	wdsOptions = nullptr;
 }

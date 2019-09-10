@@ -48,7 +48,7 @@ namespace Namiono
 		std::string Functions::MacAsString(char* macBuffer, _SIZET length)
 		{
 			char out[32];
-			ClearBuffer(out, sizeof(out));
+			ClearBuffer(out, sizeof out);
 			std::string mac = "";
 
 			sprintf(out, "%02X:%02X:%02X:%02X:%02X:%02X",

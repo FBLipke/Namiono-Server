@@ -10,15 +10,19 @@ public:
 	~DHCP_Functions();
 
 	static void Create_BootServerList(std::vector<BootServerEntry>* serverlist, Client* client);
-	static void Add_BootServer_To_ServerList(std::vector<BootServerEntry>* serverlist, Server* server, Client * client, const std::string& serverName);
-	static bool Has_BootServer(std::vector<BootServerEntry>* serverlist, const _USHORT & id);
-	static void Add_BootServer(std::vector<BootServerEntry>* serverlist, const std::string & name, const std::vector<_IPADDR>& addresses);
-	static void Generate_Bootmenu_From_ServerList(std::vector<BootServerEntry>* serverlist, Client* client);
-	static void Relay_Request_Packet(const _IPADDR& addr, const _USHORT& port, const ServiceType& type, Server * server, int iface, Client * client);
-	static _INT32 Handle_Relayed_Packet(Server * server, int iface, Packet * packet);
+	static void Add_BootServer_To_ServerList(std::vector<BootServerEntry>* serverlist,
+		Server* server, Client * client, const std::string& serverName, const std::string& bootfile);
 
-	static void Relay_Response_Packet(const ServiceType & type, Server * server, int iface, Client * client);
-	static void Handle_IPXE_Options(Server * server, int iface, Client * client, Packet * response);
-	static void Handle_WDS_Options(Server * server, int iface, Client * client);
+	static bool Has_BootServer(std::vector<BootServerEntry>* serverlist, const _USHORT & id);
+	static void Add_BootServer(std::vector<BootServerEntry>* serverlist,
+		const std::string& name, const std::vector <_IPADDR>& addresses, const std::string& bootfile);
+
+	static void Generate_Bootmenu_From_ServerList(SETTINGS* settings, std::vector<BootServerEntry>* serverlist, Client* client);
+	static void Relay_Request_Packet(const _IPADDR& addr, const _USHORT& port, const ServiceType& type, Server * server, _INT32 iface, Client * client);
+	static _INT32 Handle_Relayed_Packet(const ServiceType& type, Server * server, _INT32 iface, Packet * packet);
+
+	static void Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSION>* relaySessions, const ServiceType & type, Server * server, _INT32 iface, Client * client);
+	static void Handle_IPXE_Options(Server * server, _INT32 iface, Client * client, Packet * response);
+	static void Handle_WDS_Options(const SETTINGS* settings, const ServiceType& type, Server * server, _INT32 iface, Client * client);
 };
 

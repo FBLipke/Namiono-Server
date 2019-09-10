@@ -124,8 +124,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Namiono\Defines\DHCP\BSDP\BSDP_Defines.h" />
+    <ClInclude Include="src\Namiono\Defines\DHCP\IPXE\IPXE_Defines.h" />
+    <ClInclude Include="src\Namiono\Defines\DHCP\RBCP\RBCP_Defines.h" />
+    <ClInclude Include="src\Namiono\Defines\DHCP\WDS\WDS_Defines.h" />
+    <ClInclude Include="src\Namiono\Network\Client\DHCP\IPXE\IPXE_Client.h" />
+    <ClInclude Include="src\Namiono\Network\Client\DHCP\RBCP\RBCP_Client.h" />
+    <ClInclude Include="src\Namiono\Network\Client\DHCP\BSDP\BSDP_Client.h" />
+    <ClInclude Include="src\Namiono\Network\Client\DHCP\DHCP_Client.h" />
+    <ClInclude Include="src\Namiono\Defines\DHCP\DHCP_Defines.h" />
     <ClInclude Include="src\Namiono\Services\DHCP\DHCP_Functions.h" />
-    <ClInclude Include="src\Environment\Defines.h" />
+    <ClInclude Include="src\Namiono\Defines\Namiono_Defines.h" />
     <ClInclude Include="src\Environment\environment.h" />
     <ClInclude Include="src\Environment\environment_linux.h" />
     <ClInclude Include="src\Environment\environment_windows.h" />
@@ -138,11 +147,19 @@
     <ClInclude Include="src\Namiono\Network\Server\Server.h" />
     <ClInclude Include="src\Namiono\Services\DHCP\DHCP_Service.h" />
     <ClInclude Include="src\Namiono\Services\Service.h" />
+    <ClInclude Include="src\Namiono\Defines\TFTP\TFTP_Defines.h" />
     <ClInclude Include="src\Namiono\Services\TFTP\TFTP_Service.h" />
     <ClInclude Include="src\Namiono\Network\Network.h" />
     <ClInclude Include="src\Namiono\Services\DHCP\ProxyDHCP_Service.h" />
+    <ClInclude Include="src\Namiono\Network\Client\DHCP\WDS\WDS_Client.h" />
+    <ClInclude Include="src\Namiono\Network\Client\TFTP\TFTP_Client.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Namiono\Network\Client\DHCP\IPXE\IPXE_Client.cpp" />
+    <ClCompile Include="src\Namiono\Network\Client\DHCP\RBCP\RBCP_Client.cpp" />
+    <ClCompile Include="src\Namiono\Network\Client\DHCP\BSDP\BSDP_Client.cpp" />
+    <ClCompile Include="src\Namiono\Network\Client\DHCP\DHCP_Client.cpp" />
+    <ClCompile Include="src\Namiono\Network\Client\Client.cpp" />
     <ClCompile Include="src\Namiono\Services\DHCP\DHCP_Functions.cpp" />
     <ClCompile Include="src\Environment\environment.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -156,6 +173,8 @@
     <ClCompile Include="src\Namiono\Services\TFTP\TFTP_Service.cpp" />
     <ClCompile Include="src\Namiono\Network\Network.cpp" />
     <ClCompile Include="src\Namiono\Services\DHCP\ProxyDHCP_Service.cpp" />
+    <ClCompile Include="src\Namiono\Network\Client\DHCP\WDS\WDS_Client.cpp" />
+    <ClCompile Include="src\Namiono\Network\Client\TFTP\TFTP_Client.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
@@ -163,9 +182,9 @@
     <None Include=".travis.yml" />
     <None Include="Makefile" />
     <None Include="README.md" />
-    <None Include="TFTP_Root\Boot\apitest.0" />
-    <None Include="TFTP_Root\Boot\bisconfig.0" />
-    <None Include="TFTP_Root\Boot\bstrap.0" />
+    <None Include="TFTP_Root\Boot\x86\apitest.0" />
+    <None Include="TFTP_Root\Boot\x86\bisconfig.0" />
+    <None Include="TFTP_Root\Boot\x86\bstrap.0" />
     <None Include="TFTP_Root\Boot\x64\boot.sdi" />
     <None Include="TFTP_Root\Boot\x64\bootmgfw.efi" />
     <None Include="TFTP_Root\Boot\x64\bootmgr.exe" />
@@ -174,19 +193,16 @@
     <None Include="TFTP_Root\Boot\x64\wdsmgfw.efi" />
     <None Include="TFTP_Root\Boot\x64\wdsnbp.com" />
     <None Include="TFTP_Root\Boot\x86\default.bcd" />
-    <None Include="TFTP_Root\Boot\x86\ntldr" />
     <None Include="TFTP_Root\Boot\x86\pxeboot.n12" />
-    <None Include="TFTP_Root\Boot\x86\setupldr.exe" />
-    <None Include="TFTP_Root\Boot\x86\startrom.n12" />
+    <None Include="TFTP_Root\Boot\x86\wdsmgfw.efi" />
     <None Include="TFTP_Root\Boot\x86\wdsnbp.com" />
-    <None Include="TFTP_Root\OSChooser\English\welcome.osc" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="TFTP_Root\Boot\x64\Fonts\wgl4_boot.ttf" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Config\config.txt" />
-    <Text Include="Config\servers.txt" />
+    <Text Include="TFTP_Root\Config\config.txt" />
+    <Text Include="TFTP_Root\Config\servers.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

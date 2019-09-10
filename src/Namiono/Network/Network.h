@@ -26,7 +26,7 @@ namespace Namiono
 		class Network
 		{
 		public:
-			Network(const std::string& rootDir);
+			Network(SETTINGS* settings, const std::string& rootDir);
 			~Network();
 
 			void Init();
@@ -51,7 +51,7 @@ namespace Namiono
 			std::vector<Server> servers;
 			std::vector<_IPADDR> addresses;
 			std::vector<std::thread>listenThreads;
-
+			SETTINGS* settings;
 		};
 	}
 }

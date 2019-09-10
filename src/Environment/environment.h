@@ -25,13 +25,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <functional>
 #include <sstream>
 #include <time.h>
-
+#include <limits>
 #pragma once
 
 typedef unsigned short _USHORT;
 typedef unsigned long _ULONG;
 typedef unsigned int _UINT;
 typedef int _INT32;
+typedef long _LONG;
 typedef unsigned long long _ULONGLONG;
 typedef unsigned char _BYTE;
 
@@ -41,38 +42,30 @@ typedef unsigned char _BYTE;
 #include "environment_windows.h"
 #endif
 
-#ifndef __LITTLE_ENDIAN
-#define __LITTLE_ENDIAN						1234
+#ifdef __BYTE_ORDER
+#if defined(_BIG_ENDIAN)
+#define __BYTE_ORDER __BIG_ENDIAN
+#elif defined(_LITTLE_ENDIAN)
+#define __BYTE_ORDER __LITTLE_ENDIAN
+#endif
 #endif
 
-#ifndef __BIG_ENDIAN
-#define __BIG_ENDIAN						4321
-#endif
-
-#ifndef _BYTE_ORDER
-#if defined(__BIG_ENDIAN)
-#define _BYTE_ORDER __BIG_ENDIAN
-#else
-#define _BYTE_ORDER __LITTLE_ENDIAN
-#endif
-#endif
-#if _BYTE_ORDER == __LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 #define BS32(x) x
 #define BS16(x) x
-#elif _BYTE_ORDER == __BIG_ENDIAN
-#define BS16(x) ((static_cast<_USHORT>(x) >> 8) | ((static_cast<_USHORT>(x) & 0xff) << 8))
-#define BS32(x) ((static_cast<_UINT>(x) >> 24) | ((static_cast<_UINT>(x) >> 8) & 0xff00) | \
-				((static_cast<_UINT>(x) << 8) & 0xff0000) | (static_cast<_UINT>(x) << 24))
+#elif __BYTE_ORDER == __BIG_ENDIAN
+#define BS32(x) (((uint32_t)(x) >> 24) | (((uint32_t)(x) >> 8) & 0xff00) | (((uint32_t)(x) << 8) & 0xff0000) | ((uint32_t)(x) << 24))
+#define BS16(x) (((uint16_t)(x) >> 8) | (((uint16_t)(x) & 0xff) << 8))
+#endif
+#define LE32(x) (((uint32_t)(x) >> 24) | (((uint32_t)(x) >> 8) & 0xff00) | (((uint32_t)(x) << 8) & 0xff0000) | ((uint32_t)(x) << 24))
+
+#ifdef _WIN32
+#define LE16(x) x
+#else
+#define LE16(x) (((uint16_t)(x) >> 8) | (((uint16_t)(x) & 0xff) << 8))
 #endif
 
 #endif /* ENVIRONMENT_ENVIRONMENT_H_ */
 
 void print_Error(const std::string& message, _INT32 errorcode = 0);
 
-namespace Namiono
-{
-	namespace Network
-	{
-		std::string Get_Hostname();
-	}
-}
