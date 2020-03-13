@@ -22,7 +22,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{464132A1-076C-47B4-8469-9564FD649183}</ProjectGuid>
     <RootNamespace>NamionoServer</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -41,7 +41,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -124,6 +124,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Namiono\Network\Client\HTTP\HTTP_Client.h" />
+    <ClInclude Include="lib\sqlite\sqlite3.h" />
+    <ClInclude Include="lib\sqlite\sqlite3ext.h" />
     <ClInclude Include="src\Namiono\Defines\DHCP\BSDP\BSDP_Defines.h" />
     <ClInclude Include="src\Namiono\Defines\DHCP\IPXE\IPXE_Defines.h" />
     <ClInclude Include="src\Namiono\Defines\DHCP\RBCP\RBCP_Defines.h" />
@@ -133,6 +136,8 @@
     <ClInclude Include="src\Namiono\Network\Client\DHCP\BSDP\BSDP_Client.h" />
     <ClInclude Include="src\Namiono\Network\Client\DHCP\DHCP_Client.h" />
     <ClInclude Include="src\Namiono\Defines\DHCP\DHCP_Defines.h" />
+    <ClInclude Include="src\Namiono\Network\Server\BaseInterface.h" />
+    <ClInclude Include="src\Namiono\Network\Server\BaseServer.h" />
     <ClInclude Include="src\Namiono\Services\DHCP\DHCP_Functions.h" />
     <ClInclude Include="src\Namiono\Defines\Namiono_Defines.h" />
     <ClInclude Include="src\Environment\environment.h" />
@@ -155,11 +160,15 @@
     <ClInclude Include="src\Namiono\Network\Client\TFTP\TFTP_Client.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Namiono\Network\Client\HTTP\HTTP_Client.cpp" />
+    <ClCompile Include="lib\sqlite\sqlite3.c" />
     <ClCompile Include="src\Namiono\Network\Client\DHCP\IPXE\IPXE_Client.cpp" />
     <ClCompile Include="src\Namiono\Network\Client\DHCP\RBCP\RBCP_Client.cpp" />
     <ClCompile Include="src\Namiono\Network\Client\DHCP\BSDP\BSDP_Client.cpp" />
     <ClCompile Include="src\Namiono\Network\Client\DHCP\DHCP_Client.cpp" />
     <ClCompile Include="src\Namiono\Network\Client\Client.cpp" />
+    <ClCompile Include="src\Namiono\Network\Server\BaseInterface.cpp" />
+    <ClCompile Include="src\Namiono\Network\Server\BaseServer.cpp" />
     <ClCompile Include="src\Namiono\Services\DHCP\DHCP_Functions.cpp" />
     <ClCompile Include="src\Environment\environment.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -202,6 +211,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="TFTP_Root\Config\config.txt" />
+    <Text Include="TFTP_Root\Config\leases.txt" />
     <Text Include="TFTP_Root\Config\servers.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

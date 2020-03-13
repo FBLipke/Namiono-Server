@@ -25,6 +25,7 @@ namespace Namiono
 			Client(const ServiceType& sType, const std::string& serverid, const sockaddr_in& hint, const std::string& id);
 			TFTP_Client* Get_TFTP_Client();
 			DHCP_Client* Get_DHCP_Client();
+
 			void Set_Client_Hint(const _IPADDR& addr, const _USHORT port);
 			void Set_Client_Hint(const sockaddr_in& hint);
 			void Set_Server_Hint(const sockaddr_in& hint);
@@ -34,6 +35,13 @@ namespace Namiono
 			_USHORT Get_Port() const;
 			ServiceType Get_ServiceType() const;
 			void Set_ServiceType(const ServiceType& type);
+
+			void SetIncomingInterface(const _USHORT& index);
+			_USHORT GetIncomingInterface() const;
+
+			void SetOutgoingInterface(const _USHORT& index);
+			_USHORT GetOutgoingInterface() const;
+
 			sockaddr_in& Get_Client_Hint();
 			sockaddr_in& Get_Server_Hint();
 			sockaddr_in& Get_Relay_Hint();
@@ -41,12 +49,17 @@ namespace Namiono
 			virtual ~Client();
 
 
+			void HeartBeat();
+
 			Packet* response = nullptr;
 			std::string _socketID = "";
 		private:
+			_USHORT* _inIF = nullptr;
+			_USHORT* _outIF = nullptr;
 			TFTP_Client* tftp = nullptr;
 			DHCP_Client* dhcp = nullptr;
-			sockaddr_in _hint;
+
+			sockaddr_in _client;
 			sockaddr_in _relay;
 			sockaddr_in _server;
 

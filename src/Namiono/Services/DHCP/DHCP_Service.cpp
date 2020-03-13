@@ -16,13 +16,13 @@ namespace Namiono
 {
 	namespace Services
 	{
-		DHCP_Service::DHCP_Service(SETTINGS* settings, const std::vector<_IPADDR>& upstreamServers)
+		DHCP_Service::DHCP_Service(SETTINGS* settings, const std::vector<DHCP_UPSTREAMSERVER>& upstreamServers)
 		{
 			this->upstreamServers = upstreamServers;
 			this->settings = settings;
 		}
 
-		void DHCP_Service::Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
+		void DHCP_Service::Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
 			if (type != client->Get_ServiceType())
@@ -33,6 +33,7 @@ namespace Namiono
 
 			Network::Network::Get_BootServers()->clear();
 			std::vector<_IPADDR> addresses;
+
 			if (packet->Has_DHCPOption(60))
 			{
 				if (Functions::Compare(packet->Get_DHCPOption(static_cast<_BYTE>(60)).Value, "PXEClient", 9))
@@ -54,9 +55,26 @@ namespace Namiono
 				if (!packet->Has_DHCPOption(53))
 					return;
 
-				printf("[I] DHCP : Request on %s (from %s)...\n", Functions::AddressStr(
-					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
-					packet->get_hwaddress().c_str());
+				switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
+				{
+				case DHCP_MSGTYPE::DISCOVER:
+					printf("[I] DHCP : Request on %s (DISCOVER from %s)...\n", Functions::AddressStr(
+						server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+						packet->get_hwaddress().c_str());
+					break;
+				case DHCP_MSGTYPE::REQUEST:
+					printf("[I] DHCP : Request on %s (REQUEST from %s)...\n", Functions::AddressStr(
+						server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+						packet->get_hwaddress().c_str());
+					break;
+				case DHCP_MSGTYPE::INFORM:
+					printf("[I] DHCP : Request on %s (INFORM from %s)...\n", Functions::AddressStr(
+						server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+						packet->get_hwaddress().c_str());
+					break;
+				default:
+					break;
+				}
 
 				switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
 				{
@@ -72,12 +90,50 @@ namespace Namiono
 			case BOOTREPLY:
 				if (!packet->Has_DHCPOption(53))
 					return;
+
 				client->Get_DHCP_Client()->SetIsWDSResponse(packet->Has_DHCPOption(250));
 
-				printf("[I] DHCP : Response on %s (from %s) for %s...\n", Functions::AddressStr(
-					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
-					Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr).c_str(),
-					packet->get_hwaddress().c_str());
+				switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
+				{
+				case DHCP_MSGTYPE::OFFER:
+					if (client->Get_Server_Hint().sin_addr.s_addr != 0)
+					{
+						printf("[I] DHCP : Response on %s (OFFER from %s) for %s...\n", Functions::AddressStr(
+							server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+							Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr).c_str(),
+							packet->get_hwaddress().c_str());
+					}
+					break;
+				case DHCP_MSGTYPE::ACK:
+					if (client->Get_Server_Hint().sin_addr.s_addr != 0)
+					{
+						printf("[I] DHCP : Response on %s (ACK from %s) for %s...\n", Functions::AddressStr(
+							server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+							Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr).c_str(),
+							packet->get_hwaddress().c_str());
+					}
+					break;
+				case DHCP_MSGTYPE::NAK:
+					if (client->Get_Server_Hint().sin_addr.s_addr != 0)
+					{
+						printf("[I] DHCP : Response on %s (NAK from %s) for %s...\n", Functions::AddressStr(
+							server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+							Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr).c_str(),
+							packet->get_hwaddress().c_str());
+					}
+					break;
+				case DHCP_MSGTYPE::INFORM:
+					if (client->Get_Server_Hint().sin_addr.s_addr != 0)
+					{
+						printf("[I] DHCP : Response on %s (INFORM from %s) for %s...\n", Functions::AddressStr(
+							server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+							Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr).c_str(),
+							packet->get_hwaddress().c_str());
+					}
+					break;
+				default:
+					break;
+				}
 
 				for (Iface& iface : server->Get_Interfaces())
 					if (iface.Get_ServiceType() == type)
@@ -88,6 +144,8 @@ namespace Namiono
 				{
 				case ACK:
 				case OFFER:
+				case INFORM:
+				case NAK:
 					switch (client->Get_DHCP_Client()->Get_Vendor())
 					{
 					case PXEClient:
@@ -112,7 +170,7 @@ namespace Namiono
 				server->Remove_Client(client->Get_ID());
 		}
 
-		void DHCP_Service::Handle_DHCP_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
+		void DHCP_Service::Handle_DHCP_Request(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
 			/*
@@ -125,33 +183,50 @@ namespace Namiono
 			*/
 
 			client->Get_DHCP_Client()->SetIsRelayedPacket(packet->get_relayIP() != 0);
+
 			if (client->Get_DHCP_Client()->GetIsRelayedPacket())
 			{
-				if (this->relaySessions.find(client->Get_ID()) == this->relaySessions.end())
+				std::vector<Iface> _interfaces;
+				server->Get_Interfaces(type, &_interfaces);
+
+				for (Iface& iF : _interfaces)
 				{
-					this->relaySessions.emplace(client->Get_ID(), DHCP_RELAYSESSION(
-						client->Get_Client_Hint().sin_addr.s_addr, packet->get_relayIP(), iface));
+					if (iF.Get_IPAddress() == packet->get_relayIP())
+						continue;
+				
+					if (client->Get_DHCP_Client()->GetIsRelayedPacket() && this->relaySessions.find(client->Get_ID()) == this->relaySessions.end())
+						this->relaySessions.emplace(client->Get_ID(), DHCP_RELAYSESSION(client->Get_Client_Hint().sin_addr.s_addr, packet->get_relayIP(), iface));
 				}
 			}
 
 			client->Get_DHCP_Client()->Set_State(CLIENTSTATE::DHCP_RELAY);
 			client->response = new Packet(type, *packet, packet->get_Length());
 
-			for (_SIZET i = 0; i < this->upstreamServers.size(); i++)
+			for (DHCP_UPSTREAMSERVER& _upstreamserver : this->upstreamServers)
 			{
-				if (client->Get_ServiceType() == server->Get_Interface(type, iface)->Get_ServiceType())
-					DHCP_Functions::Relay_Request_Packet(this->upstreamServers.at(i), 67, type, server, iface, client);
+				switch (type)
+				{
+				case DHCP_SERVER:
+				case BINL_SERVER:
+					if (client->Get_ServiceType() == server->Get_Interface(type, iface)->Get_ServiceType())
+						DHCP_Functions::Relay_Request_Packet(_upstreamserver.Get_IPAddress(), _upstreamserver.Get_Port(), type, server, iface, client);
+				}
 			}
 
 			delete client->response;
 			client->response = nullptr;
 		}
 
-		void DHCP_Service::Handle_DHCP_Response(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
+		void DHCP_Service::Handle_DHCP_Response(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
 			client->response = new Packet(type, *packet, packet->get_Length());
-			
+
+			printf("[I] DHCP : Response on %s (from %s) for %s...\n", Functions::AddressStr(
+				server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+				Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr).c_str(),
+				packet->get_hwaddress().c_str());
+
 			switch (client->Get_DHCP_Client()->Get_Vendor())
 			{
 			case PXEClient:
@@ -160,16 +235,24 @@ namespace Namiono
 					DHCP_Functions::Create_BootServerList(Network::Network::Get_BootServers(), client);
 					DHCP_Functions::Generate_Bootmenu_From_ServerList(settings, Network::Network::Get_BootServers(), client);
 
-					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_DISCOVERY_MCADDR),
-						server->Get_Interface(type, iface)->Get_MulticastIP());
+					RBCP_DISCOVERYCONTROL _control = static_cast<RBCP_DISCOVERYCONTROL>
+						(client->Get_DHCP_Client()->Get_RBCPClient()->Get_Control());
 
-					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MTFTP_IP_ADDR),
-						server->Get_Interface(type, iface)->Get_MulticastIP());
+					if ((_control != DISABLE_MCAST || _control != UNICAST_ONLY) && settings->MULTICAST_SUPPORT)
+					{
+						client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_DISCOVERY_MCADDR),
+							server->Get_Interface(type, iface)->Get_MulticastIP());
 
-					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MTFTP_SERVER_PORT), settings->MTFTP_SPORT);
-					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MTFTP_CLIENT_PORT), settings->MTFTP_CPORT);
+						client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MTFTP_IP_ADDR),
+							server->Get_Interface(type, iface)->Get_MulticastIP());
+					
+						client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MTFTP_SERVER_PORT), settings->MTFTP_SPORT);
+						client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MTFTP_CLIENT_PORT), settings->MTFTP_CPORT);
+					}
 
-					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_DOMAIN), settings->NBDOMAIN);
+					if (settings->NBDOMAIN.size() != 0)
+						client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_DOMAIN), settings->NBDOMAIN);
+					
 					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_SERVER), server->Get_Interface(type, iface)->Get_ServerName());
 					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_DISCOVERY), static_cast<_BYTE>(1));
 					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_CONFIGURED), static_cast<_BYTE>(1));
@@ -190,7 +273,7 @@ namespace Namiono
 
 			client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(255)));
 
-			DHCP_Functions::Relay_Response_Packet(&this->relaySessions, type, server, iface, client);
+			DHCP_Functions::Relay_Response_Packet(&this->relaySessions, type, server, iface, client, packet);
 			client->Get_DHCP_Client()->Set_State(DHCP_DONE);
 			delete client->response;
 			client->response = nullptr;
@@ -199,6 +282,22 @@ namespace Namiono
 		DHCP_Service::~DHCP_Service()
 		{
 			upstreamServers.clear();
+		}
+		
+		void DHCP_Service::Start()
+		{
+		}
+		
+		void DHCP_Service::Close()
+		{
+		}
+		
+		void DHCP_Service::Heartbeart()
+		{
+		}
+
+		void DHCP_Service::Init()
+		{
 		}
 	}
 }

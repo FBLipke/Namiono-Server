@@ -11,7 +11,7 @@ namespace Namiono
 			this->settings = settings;
 		}
 
-		void TFTP_Service::Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
+		void TFTP_Service::Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
 			switch (static_cast<Packet_OPCode>(packet->Get_Opcode()))
@@ -32,7 +32,7 @@ namespace Namiono
 				server->Remove_Client(client->Get_ID());
 		}
 
-		void TFTP_Service::Handle_RRQ_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
+		void TFTP_Service::Handle_RRQ_Request(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
 			if (packet->Get_TFTPOption("File").Length == 0)
@@ -94,7 +94,7 @@ namespace Namiono
 			}
 		}
 
-		void TFTP_Service::Handle_ACK_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
+		void TFTP_Service::Handle_ACK_Request(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
 			;
@@ -104,13 +104,30 @@ namespace Namiono
 				return;
 			}
 
+
+#ifdef _WIN32
 			_USHORT blk = htons(client->Get_TFTP_Client()->GetCurrentBlock());
-			bool isInSync = memcmp(&packet->Get_Buffer()[2], &blk, sizeof blk) == 0;
+#else
+			_USHORT blk = client->Get_TFTP_Client()->GetCurrentBlock();
+#endif // _WIN32
+
+			_USHORT tmpblk = 0;
+			_USHORT haveblk = 0;
+
+			memcpy(&tmpblk, &packet->Get_Buffer()[2], sizeof(_USHORT));
+			
+#ifdef _WIN32
+			haveblk = tmpblk;
+#else
+			haveblk = htons(tmpblk);
+#endif // _WIN32
+
+			bool isInSync = memcmp(&haveblk, &blk, sizeof(blk)) == 0;
 
 			if (!isInSync)
 			{
 				client->Get_TFTP_Client()->Set_State(CLIENTSTATE::TFTP_ERROR);
-				print_Error("[W] TFTP : Client is out of Sync!");
+				print_Error("TFTP : Client is out of Sync!");
 				return;
 			}
 
@@ -126,8 +143,10 @@ namespace Namiono
 
 			for (_BYTE i = 0; i < client->Get_TFTP_Client()->GetWindowSize(); i++)
 			{
-				chunk = static_cast<_SIZET>(client->Get_TFTP_Client()->GetBlockSize()) < client->Get_TFTP_Client()->GetBytesToRead() - client->Get_TFTP_Client()->GetBytesRead() ?
-					static_cast<_SIZET>(client->Get_TFTP_Client()->GetBlockSize()) : (client->Get_TFTP_Client()->GetBytesToRead() - client->Get_TFTP_Client()->GetBytesRead());
+				chunk = static_cast<_SIZET>(client->Get_TFTP_Client()->GetBlockSize()) <
+						client->Get_TFTP_Client()->GetBytesToRead() - client->Get_TFTP_Client()->GetBytesRead() ?
+					static_cast<_SIZET>(client->Get_TFTP_Client()->GetBlockSize()) : (client->Get_TFTP_Client()->GetBytesToRead()
+						- client->Get_TFTP_Client()->GetBytesRead());
 
 				client->Get_TFTP_Client()->FileSeek();
 				client->Get_TFTP_Client()->SetCurrentBlock(client->Get_TFTP_Client()->GetCurrentBlock() + 1);
@@ -135,7 +154,8 @@ namespace Namiono
 				client->response = new Packet(type, static_cast<_SIZET>(4 + chunk), Packet_OPCode::TFTP_DAT);
 				client->response->Set_Block(client->Get_TFTP_Client()->GetCurrentBlock());
 
-				client->Get_TFTP_Client()->SetBytesRead(static_cast<_LONG>(fread(&client->response->Get_Buffer()[4], 1, chunk, client->Get_TFTP_Client()->Get_FileHandle())));
+				client->Get_TFTP_Client()->SetBytesRead(static_cast<_LONG>(fread(&client->response->Get_Buffer()[4],
+					1, chunk, client->Get_TFTP_Client()->Get_FileHandle())));
 				client->response->Commit();
 
 				server->Send(type, iface, client);
@@ -153,7 +173,7 @@ namespace Namiono
 			}
 		}
 
-		void TFTP_Service::Handle_ERR_Request(const ServiceType& type, Namiono::Network::Server* server, _INT32 iface,
+		void TFTP_Service::Handle_ERR_Request(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
 			_SIZET len = packet->get_Length() - 3;
@@ -174,8 +194,23 @@ namespace Namiono
 				client->Get_TFTP_Client()->Set_State(TFTP_ERROR);
 		}
 
-
 		TFTP_Service::~TFTP_Service()
+		{
+		}
+
+		void TFTP_Service::Start()
+		{
+		}
+
+		void TFTP_Service::Close()
+		{
+		}
+
+		void TFTP_Service::Heartbeart()
+		{
+		}
+
+		void TFTP_Service::Init()
 		{
 		}
 	}

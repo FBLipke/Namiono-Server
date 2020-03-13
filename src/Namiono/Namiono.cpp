@@ -28,7 +28,7 @@ namespace Namiono
 					printf("[D] ARG --rootdir : %s\n", settings->ROOTDIR.c_str());
 				}
 
-				if (memcmp(argv[i], "--confdir", strlen("--confdir")) == 0) /* tftp root Directory */
+				if (memcmp(argv[i], "--confdir", strlen("--confdir")) == 0) /* tftp config Directory */
 				{
 					settings->CONFDIR = std::string(argv[(i + 1)]);
 					printf("[D] ARG --confdir : %s\n", settings->CONFDIR.c_str());
@@ -60,13 +60,14 @@ namespace Namiono
 	bool _Namiono::Init()
 	{
 		printf("[I] Initializing...\n");
+
 		if (settings->ROOTDIR.size() == 0)
 		{
 			this->TFTPRootDir = Combine(CurrentDirectory(), "TFTP_Root");
 		}
 		else
 		{
-			this->TFTPRootDir = Combine(settings->ROOTDIR,"");
+			this->TFTPRootDir = Combine(settings->ROOTDIR, "");
 		}
 
 		if (!IsDirExist(this->TFTPRootDir))
@@ -129,6 +130,7 @@ namespace Namiono
 
 	void _Namiono::Heartbeat()
 	{
+		this->network->HeartBeat();
 	}
 
 	void _Namiono::Close()

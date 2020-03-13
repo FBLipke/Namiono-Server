@@ -1,4 +1,3 @@
-#pragma once
 
 /*
 This program is free software: you can redistribute it and/or modify
@@ -13,6 +12,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#pragma once
 #include <Namiono/Namiono.h>
 
 namespace Namiono
@@ -21,7 +21,7 @@ namespace Namiono
 	{
 		static std::map<ServiceType, Namiono::Services::Service*> services;
 		static std::vector<BootServerEntry> serverlist;
-		static std::vector<_IPADDR> dhcpservers;
+		static std::vector<DHCP_UPSTREAMSERVER> dhcpservers;
 
 		class Network
 		{
@@ -32,24 +32,20 @@ namespace Namiono
 			void Init();
 
 			void Start();
-
+			void HeartBeat();
 			void Listen();
 
 			static std::vector<BootServerEntry>* Get_BootServers();
-			static std::vector<_IPADDR>* Get_UpstreamServers();
-
+			static std::vector<DHCP_UPSTREAMSERVER>* Get_UpstreamServers();
 #ifdef _WIN32
 			bool Init_Winsock(_INT32 major, _INT32 minor);
 			bool Close_Winsock();
 #endif
-
 			void Close();
 		private:
-
 			_ULONG requestId = 0;
 			_USHORT id = 1;
 			std::vector<Server> servers;
-			std::vector<_IPADDR> addresses;
 			std::vector<std::thread>listenThreads;
 			SETTINGS* settings;
 		};

@@ -392,7 +392,7 @@ namespace Namiono
 			{
 			case DHCP_RES:
 			case DHCP_REQ:
-				Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(255)));
+				Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(0xff)));
 				packetLength = 240;
 				_offset = packetLength;
 
@@ -667,7 +667,7 @@ namespace Namiono
 			
 			Read(out, _length, 28);
 			
-			tmp = Functions::MacAsString(out, _length);
+			tmp = Functions::MacAsString(out);
 			
 			delete[] out;
 			out = nullptr;
@@ -751,7 +751,7 @@ namespace Namiono
 			return filename;
 		}
 
-		void Packet::CopyFrom(const Packet & src, _SIZET srcOffset, _SIZET dstOffset, _SIZET length)
+		void Packet::CopyFrom(const Packet & src, const _SIZET& srcOffset, const _SIZET& dstOffset, const _SIZET& length)
 		{
 			memcpy(&this->Get_Buffer()[dstOffset], &src.Get_Buffer()[srcOffset], length);
 		}

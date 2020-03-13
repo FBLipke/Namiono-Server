@@ -22,15 +22,16 @@ namespace Namiono
 		{
 		public:
 			Iface();
-			Iface(SETTINGS* settings, const ServiceType& type, const std::string& name, const int index, const _IPADDR address,
+			explicit Iface(SETTINGS* settings, const ServiceType& type, const std::string& name, const _USHORT index, const _IPADDR address,
 				const _IPADDR netmask, const _IPADDR gateway, const _USHORT id, const _USHORT port);
 
 			virtual ~Iface();
 
 			bool Init();
 			bool Start();
-			void Send(sockaddr_in& hint, Packet* response);
+			_INT32 Send(sockaddr_in& hint, Packet* response);
 			bool Close();
+			bool isListening();
 			bool Heartbeat();
 			std::vector<std::string> Get_ARPCache();
 
@@ -59,6 +60,7 @@ namespace Namiono
 			_USHORT _id;
 			_USHORT _port;
 
+			bool _listening = false;
 			bool isUpstreamInterface = false;
 			std::vector<std::string> arpCache;
 

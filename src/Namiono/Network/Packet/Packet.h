@@ -95,7 +95,7 @@ namespace Namiono
 
 			std::string get_osc_filename(const std::string& rootDir);
 
-			void CopyFrom(const Packet& src, _SIZET srcOffset, _SIZET dstOffset, _SIZET length);
+			void CopyFrom(const Packet& src, const _SIZET& srcOffset, const _SIZET& dstOffset, const _SIZET& length);
 
 			void set_Length(const _SIZET& length);
 			_SIZET get_Length() const;
@@ -120,7 +120,7 @@ namespace Namiono
 		private:
 			char* buffer = nullptr;
 			ServiceType serviceType;
-			Packet_OPCode opcode = PACKET_UNKNOWN;
+			Packet_OPCode opcode = Packet_OPCode::PACKET_UNKNOWN;
 			_SIZET packetLength = 0;
 			bool isDHCPPacket = false;
 

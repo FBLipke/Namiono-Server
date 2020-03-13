@@ -11,31 +11,28 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <Namiono/Namiono.h>
 #pragma once
+#include <Namiono/Namiono.h>
 
 namespace Namiono
 {
 	namespace Network
 	{
-		class RBCP_Client
+		class BaseServer
 		{
 		public:
-			RBCP_Client();
-			void Set_Item(const _USHORT & item);
-			const _USHORT & Get_Item() const;
-			void Set_Layer(const RBCP_LAYER & layer);
-			const RBCP_LAYER & Get_Layer() const;
-			void Set_MulticastIP(const _IPADDR & ip);
-			const RBCP_DISCOVERYCONTROL& Get_Control();
-			const _IPADDR & Get_MulticastIP() const;
-			~RBCP_Client();
-		private:
-			_USHORT* item = nullptr;
-			RBCP_LAYER* layer = nullptr;
+			BaseServer();
+			~BaseServer();
 
-			_IPADDR* mcastip = nullptr;
-			RBCP_DISCOVERYCONTROL* control = nullptr;
+			bool Init();
+			bool Start();
+
+			void Listen();
+			bool Stop();
+			bool Close();
+			bool Send();
+		private:
+
 		};
 	}
 }

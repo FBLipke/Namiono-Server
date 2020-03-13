@@ -86,7 +86,7 @@ namespace Namiono
 			return true;
 		}
 
-		_SIZET FileWrite(const std::string& filename, const char* src, _SIZET length)
+		_SIZET FileWrite(const std::string& filename, const char* src, const _SIZET& length)
 		{
 			_SIZET retval = 0;
 
@@ -183,10 +183,7 @@ namespace Namiono
 			if (!__has_endingslash(_path))
 				_path = _path + __pathSeperatorChar();
 
-			if (p2.size() != 0)
-				return __replaceSlash(_path + p2);
-			else
-				return __replaceSlash(_path);
+				return p2.size() != 0 ? __replaceSlash(_path + p2) : __replaceSlash(_path);
 		}
 	}
 }

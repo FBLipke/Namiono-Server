@@ -38,13 +38,16 @@ using namespace Namiono::Common;
 #include <Namiono/Network/Client/DHCP/RBCP/RBCP_Client.h>
 #include <Namiono/Network/Client/DHCP/IPXE/IPXE_Client.h>
 #include <Namiono/Network/Client/DHCP/DHCP_Client.h>
-
 #include <Namiono/Network/Client/TFTP/TFTP_Client.h>
+#include <Namiono/Network/Client/HTTP/HTTP_Client.h>
 
 #include <Namiono/Network/Client/Client.h>
 
 #include <Namiono/Network/Server/Interface.h>
+#include <Namiono/Network/Server/BaseInterface.h>
+
 #include <Namiono/Network/Server/Server.h>
+#include <Namiono/Network/Server/BaseServer.h>
 
 #include <Namiono/Services/Service.h>
 #include <Namiono/Services/DHCP/DHCP_Functions.h>
@@ -60,7 +63,7 @@ namespace Namiono
 	{
 	public:
 		_Namiono() {};
-		_Namiono(_INT32 argc, char* argv[]);
+		explicit _Namiono(_INT32 argc, char* argv[]);
 		~_Namiono();
 
 		bool Init();

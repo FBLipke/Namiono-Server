@@ -1,3 +1,4 @@
 PxePrompt = 
 PxeBootMenu = 1
 PxePromptTimeout = 255
+LCMDomain = FBLIPKE

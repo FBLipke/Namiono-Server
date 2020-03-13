@@ -17,7 +17,7 @@ namespace Namiono
 {
 	namespace Network
 	{
-		void Handle_Request(ServiceType type, Server* server, int iface, Client* client, Packet* packet)
+		void Handle_Request(ServiceType type, Server* server, _USHORT iface, Client* client, Packet* packet)
 		{
 			services.at(client->Get_ServiceType())->Handle_Service_Request(type, server, iface, client, packet);
 		}
@@ -78,20 +78,20 @@ namespace Namiono
 
 					for (_SIZET i = 0; i < addrs.size(); i++)
 					{
-						Get_UpstreamServers()->emplace_back(addrs.at(i));
+						Get_UpstreamServers()->emplace_back(DHCP_UPSTREAMSERVER(addrs.at(i), 67));
 					}
 				}
 
 				fclose(fil);
 			}
 			else
-				printf("%s not found!\n", _serverlistFile.c_str());
+				printf("[E] File \"%s\" not found!\n", _serverlistFile.c_str());
 
 			services.emplace(DHCP_SERVER, new DHCP_Service(this->settings, *Get_UpstreamServers()));
 			services.emplace(BINL_SERVER, new ProxyDHCP_Service(this->settings));
 			services.emplace(TFTP_SERVER, new TFTP_Service(this->settings, rootDir));
 
-			servers.emplace_back(settings, &addresses, Handle_Request);
+			servers.emplace_back(settings, Handle_Request);
 		}
 
 
@@ -109,9 +109,7 @@ namespace Namiono
 		void Network::Init()
 		{
 			for (_SIZET i = 0; i < servers.size(); i++)
-			{
 				servers.at(i).Init();
-			}
 		}
 
 		void Network::Start()
@@ -119,22 +117,22 @@ namespace Namiono
 			printf("[I] Starting network...\n");
 
 			for (_SIZET i = 0; i < servers.size(); i++)
-			{
 				servers.at(i).Start();
-			}
+		}
+
+		void Network::HeartBeat()
+		{
+			for (_SIZET i = 0; i < servers.size(); i++)
+				servers.at(i).HeartBeat();
 		}
 
 		void Network::Listen()
 		{
 			for (_SIZET i = 0; i < servers.size(); i++)
-			{
 				servers.at(i).Listen(&listenThreads);
-			}
 
 			for (_SIZET i = 0; i < listenThreads.size(); i++)
-			{
 				listenThreads.at(i).join();
-			}
 		}
 
 		std::vector<BootServerEntry>* Network::Get_BootServers()
@@ -142,7 +140,7 @@ namespace Namiono
 			return &serverlist;
 		}
 
-		std::vector<_IPADDR>* Network::Get_UpstreamServers()
+		std::vector<DHCP_UPSTREAMSERVER>* Network::Get_UpstreamServers()
 		{
 			return &dhcpservers;
 		}
@@ -152,9 +150,7 @@ namespace Namiono
 			printf("[I] Closing network...\n");
 
 			for (_SIZET i = 0; i < servers.size(); i++)
-			{
 				servers.at(i).Close();
-			}
 		}
 	}
 }

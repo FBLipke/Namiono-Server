@@ -1,3 +1,16 @@
+/*
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <Environment/environment.h>
 #pragma once
 namespace Namiono
@@ -244,11 +257,40 @@ namespace Namiono
 			char Value[1024];
 		} DHCP_Option;
 
+		typedef struct DHCP_UPSTREAMSERVER
+		{
+			DHCP_UPSTREAMSERVER(const _IPADDR& address, const _USHORT& port)
+			{
+				this->address = address;
+				this->port = port;
+			}
+
+			_USHORT Get_Port() const
+			{
+				return this->port;
+			}
+
+			_IPADDR Get_IPAddress() const
+			{
+				return this->address;
+			}
+
+			~DHCP_UPSTREAMSERVER()
+			{
+
+			}
+		private:
+			_USHORT port;
+			_IPADDR address;
+
+		} DHCP_UPSTREAMSERVER;
+
+
 		typedef struct DHCP_RELAYSESSION
 		{
-			DHCP_RELAYSESSION(const _IPADDR& remote, const _IPADDR& relayIP, const _IPADDR& iface)
+			DHCP_RELAYSESSION(const _IPADDR& remote, const _IPADDR& relayIP, const _USHORT& iface)
 			{
-				this->iface = new _INT32(iface);
+				this->iface = new _USHORT(iface);
 				this->_remote = new _IPADDR(remote);
 				this->_relayIP = new _IPADDR(relayIP);
 			}
@@ -275,14 +317,22 @@ namespace Namiono
 				return *this->_remote;
 			}
 
-			_INT32 Get_Interface()
+			_USHORT Get_Interface()
 			{
 				return *this->iface;
 			}
+
 		private:
-			_INT32* iface = nullptr;
+			_USHORT* iface = nullptr;
 			_IPADDR* _remote = nullptr;
 			_IPADDR* _relayIP = nullptr;
 		} DHCP_RELAYSESSION;
+
+		typedef struct DHCP_LEASE
+		{
+			std::string macaddress;
+			std::map<_BYTE, DHCP_Option> options;
+
+		} DHCP_LEASE;
 	}
 }

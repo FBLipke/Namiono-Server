@@ -4,15 +4,11 @@ namespace Namiono
 {
 	namespace Services
 	{
-		void ProxyDHCP_Service::Handle_Service_Request(const ServiceType & type, Namiono::Network::Server * server, _INT32 iface,
-			Namiono::Network::Client * client, Namiono::Network::Packet * packet)
+		void ProxyDHCP_Service::Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
+			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
 			if (type != client->Get_ServiceType())
 				server->Remove_Client(client->Get_ID());
-
-			printf("[I] ProxyDHCP : Request on %s (from %s)...\n", Functions::AddressStr(
-				server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
-				packet->get_hwaddress().c_str());
 
 			if (packet->Has_DHCPOption(60))
 			{
@@ -29,10 +25,48 @@ namespace Namiono
 				}
 			}
 
+			switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
+			{
+			case DHCP_MSGTYPE::DISCOVER:
+				printf("[I] ProxyDHCP : Request on %s (DISCOVER from %s)...\n", Functions::AddressStr(
+					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+					packet->get_hwaddress().c_str());
+				break;
+			case DHCP_MSGTYPE::OFFER:
+				break;
+			case DHCP_MSGTYPE::REQUEST:
+				printf("[I] ProxyDHCP : Request on %s (REQUEST from %s)...\n", Functions::AddressStr(
+					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+					packet->get_hwaddress().c_str());
+				break;
+			case DHCP_MSGTYPE::DECLINE:
+				printf("[I] ProxyDHCP : Request on %s (DECLINE from %s)...\n", Functions::AddressStr(
+					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+					packet->get_hwaddress().c_str());
+				break;
+
+			case DHCP_MSGTYPE::ACK:
+				printf("[I] ProxyDHCP : Request on %s (ACK from %s)...\n", Functions::AddressStr(
+					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+					packet->get_hwaddress().c_str());
+				break;
+			case DHCP_MSGTYPE::NAK:
+				printf("[I] ProxyDHCP : Request on %s (NAK from %s)...\n", Functions::AddressStr(
+					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+					packet->get_hwaddress().c_str());
+				break;
+			case DHCP_MSGTYPE::INFORM:
+				printf("[I] ProxyDHCP : Request on %s (INFORM from %s)...\n", Functions::AddressStr(
+					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+					packet->get_hwaddress().c_str());
+				break;
+			default:
+				break;
+			}
+
 			switch (packet->get_opcode())
 			{
 			case BOOTREQUEST:
-
 				if (!packet->Has_DHCPOption(53))
 					return;
 
@@ -42,6 +76,9 @@ namespace Namiono
 				{
 				case INFORM:
 				case REQUEST:
+
+
+
 					this->Handle_Request_Request(settings, type, server, iface, client, packet);
 					break;
 				default:
@@ -57,15 +94,15 @@ namespace Namiono
 			}
 		}
 
-		void ProxyDHCP_Service::Handle_Request_Request(const SETTINGS* settings, const ServiceType & type, Namiono::Network::Server * server, _INT32 iface,
-			Namiono::Network::Client * client, Namiono::Network::Packet * packet)
+		void ProxyDHCP_Service::Handle_Request_Request(const SETTINGS* settings, const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
+			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
 			client->response = new Packet(type, *packet, 1024, DHCP_MSGTYPE::ACK);
 			client->Get_DHCP_Client()->SetIsWDSRequest(packet->Has_DHCPOption(250));
 			std::vector<DHCP_Option> options;
+
 			_USHORT _type = 0;
 			_USHORT _layer = 0;
-
 
 			std::string _serverName = server->Get_Interface(type, iface)->Get_ServerName();
 			std::string _bootfile = "";
@@ -95,26 +132,35 @@ namespace Namiono
 
 					for (_SIZET i = 0; i < options.size(); i++)
 					{
+						// WDS Architecture...
+						
 						if (options.at(i).Option == static_cast<_BYTE>(WDSBP_OPT_ARCHITECTURE))
 						{
-							DHCP_ARCH arch = INTEL_X86;
+							DHCP_ARCH arch = DHCP_ARCH::INTEL_X86;
 							memcpy(&arch, &options.at(i).Value[0], sizeof(_USHORT));
 							_USHORT __arch = LE16(arch);
 
 							client->Get_DHCP_Client()->SetArchitecture(static_cast<DHCP_ARCH>(htons(__arch)));
 						}
 
+						// WDS Next Action...
+
 						if (options.at(i).Option == static_cast<_BYTE>(WDSBP_OPT_NEXT_ACTION))
 						{
-
+							WDSNBP_OPTION_NEXTACTION value = WDSNBP_OPTION_NEXTACTION::APPROVAL;
+							memcpy(&value, &options.at(i).Value[0], sizeof(_USHORT));
+							client->Get_DHCP_Client()->Get_WDSClient()->SetNextAction(value);
 						}
 					}
 
 					if (client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile().size() != 0)
-						client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252), client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
+						client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252),
+							client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
 
 					client->Get_DHCP_Client()->Get_WDSClient()->SetRequestID(+1);
-					client->Get_DHCP_Client()->Set_State(client->Get_DHCP_Client()->Get_WDSClient()->GetActionDone() == 0 ? DHCP_WAITING : DHCP_DONE);
+					client->Get_DHCP_Client()->Set_State(static_cast<CLIENTSTATE>(
+						client->Get_DHCP_Client()->Get_WDSClient()->GetActionDone()) == 0
+						? CLIENTSTATE::DHCP_WAITING : CLIENTSTATE::DHCP_DONE);
 				}
 
 				if (packet->Has_DHCPOption(43))
@@ -159,8 +205,6 @@ namespace Namiono
 								}
 
 								_serverName = Network::Network::Get_BootServers()->at(_type - 1).Description;
-
-
 								_bootfile = Network::Network::Get_BootServers()->at(_type - 1).Bootfile;
 
 								printf("[I] ProxyDHCP : Redirecting client %s to Server %s (%s)...\n",
@@ -196,6 +240,7 @@ namespace Namiono
 				if (_serverName.size() == 0)
 					_serverName = Functions::AddressStr(client->Get_DHCP_Client()->GetNextServer());
 				_serverName = Functions::Replace(_serverName, "(*) ", "");
+
 				client->response->Add_DHCPOption(DHCP_Option(66, _serverName));
 
 				client->response->set_servername(_serverName);
@@ -218,8 +263,10 @@ namespace Namiono
 					_bootfile = client->Get_DHCP_Client()->GetBootfile();
 					DHCP_Functions::Handle_WDS_Options(settings, type, server, iface, client);
 
-					if (client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile().size() != 0 && !client->Get_DHCP_Client()->GetIsWDSResponse())
-						client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252), client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
+					if (client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile().size() != 0
+						&& !client->Get_DHCP_Client()->GetIsWDSResponse())
+							client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252),
+								client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
 				}
 				else
 				{
@@ -244,6 +291,22 @@ namespace Namiono
 		}
 
 		ProxyDHCP_Service::~ProxyDHCP_Service()
+		{
+		}
+
+		void ProxyDHCP_Service::Start()
+		{
+		}
+
+		void ProxyDHCP_Service::Close()
+		{
+		}
+
+		void ProxyDHCP_Service::Heartbeart()
+		{
+		}
+
+		void ProxyDHCP_Service::Init()
 		{
 		}
 	}

@@ -1,3 +1,16 @@
+/*
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <Environment/environment.h>
 #pragma once
 namespace Namiono
@@ -67,7 +80,7 @@ namespace Namiono
 			_IPADDR Address = 0;
 
 			BootMenuEntry(const _USHORT& id, const std::string& text,
-				const BootServerType type = PXEBootstrapServer)
+				const BootServerType type = BootServerType::PXEBootstrapServer)
 			{
 				Ident = id;
 				Type = type;
@@ -76,7 +89,7 @@ namespace Namiono
 			}
 
 			BootMenuEntry(const _USHORT& id, const std::string& text, const _IPADDR& address,
-				const BootServerType type = PXEBootstrapServer)
+				const BootServerType type = BootServerType::PXEBootstrapServer)
 			{
 				Ident = id;
 				Type = type;
