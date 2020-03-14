@@ -185,7 +185,9 @@ namespace Namiono
 				_INT32 retval = setsockopt(this->_socket, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char*)&mreq, sizeof(mreq));
 				if (retval == SOCKET_ERROR)
 				{
+#ifdef _WIN32
 					printf("[E] Close: Failed to close Multicast interface! (Error: %d)\n", WSAGetLastError());
+#endif
 				}
 			}
 
