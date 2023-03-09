@@ -75,6 +75,10 @@ namespace Namiono
 			while (tmp.size())
 			{
 				_SIZET index = tmp.find(token);
+
+				if (index >= tmp.size())
+					break;
+
 				if (index != std::string::npos)
 				{
 					result.push_back(tmp.substr(0, index));
