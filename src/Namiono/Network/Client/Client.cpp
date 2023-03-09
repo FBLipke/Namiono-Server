@@ -133,6 +133,14 @@ namespace Namiono
 				}
 				break;
 			case TFTP_SERVER:
+				switch (htons(port))
+				{
+				case 69:
+					this->_client.sin_port = htons(port);
+					break;
+				default:
+					break;
+				}
 				break;
 			default:
 				break;
@@ -142,14 +150,7 @@ namespace Namiono
 
 		_USHORT Client::Get_Port() const
 		{
-			switch (this->Get_ServiceType())
-			{
-			case DHCP_SERVER:
-			case BINL_SERVER:
-				return this->_client.sin_port;
-			case TFTP_SERVER:
-				return this->_client.sin_port;
-			}
+			return this->_client.sin_port;
 		}
 
 		ServiceType Client::Get_ServiceType() const

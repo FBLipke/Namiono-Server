@@ -47,8 +47,8 @@ namespace Namiono
 
 		typedef enum WDSNBP_ActionDone_Values
 		{
-			False = 0,
-			True = 1
+			False = 0x00,
+			True = 0x01
 		} WDSNBP_NEXTACTION_Values;
 	}
 }
