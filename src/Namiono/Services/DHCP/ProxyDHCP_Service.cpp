@@ -266,7 +266,7 @@ namespace Namiono
 						client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
 				break;
 			case AAPLBSDPC:
-				if (client->Get_DHCP_Client()->GetIsBSDPRequest())
+				if (!client->Get_DHCP_Client()->GetIsBSDPRequest())
 					return;
 
 				client->Set_Port(client->Get_DHCP_Client()->Get_BSDPClient()->Get_ReplyPort());
