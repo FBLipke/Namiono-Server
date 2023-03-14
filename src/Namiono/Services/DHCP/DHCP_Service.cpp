@@ -139,7 +139,12 @@ namespace Namiono
 					if (iface.Get_ServiceType() == type)
 						addresses.emplace_back(iface.Get_IPAddress());
 
-				DHCP_Functions::Add_BootServer(Network::Network::Get_BootServers(), Functions::Get_Hostname(), addresses, "");
+				BootServerType bsType = BootServerType::PXEBootstrapServer;
+
+				if (client->Get_DHCP_Client()->GetIsWDSRequest() || client->Get_DHCP_Client()->GetIsWDSResponse())
+					bsType = BootServerType::WindowsNTBootServer;
+
+				DHCP_Functions::Add_BootServer(Network::Network::Get_BootServers(), bsType, Functions::Get_Hostname(), addresses, "");
 				switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
 				{
 				case ACK:
@@ -149,6 +154,7 @@ namespace Namiono
 					switch (client->Get_DHCP_Client()->Get_Vendor())
 					{
 					case PXEClient:
+					case PXEServer:
 						DHCP_Functions::Add_BootServer_To_ServerList(Network::Network::Get_BootServers(), server, client, packet->get_servername(),
 							packet->get_filename());
 						break;
@@ -199,22 +205,29 @@ namespace Namiono
 				}
 			}
 
-			client->Get_DHCP_Client()->Set_State(CLIENTSTATE::DHCP_RELAY);
-			client->response = new Packet(type, *packet, packet->get_Length());
-
-			for (DHCP_UPSTREAMSERVER& _upstreamserver : this->upstreamServers)
+			if (this->upstreamServers.size() != 0)
 			{
-				switch (type)
-				{
-				case DHCP_SERVER:
-				case BINL_SERVER:
-					if (client->Get_ServiceType() == server->Get_Interface(type, iface)->Get_ServiceType())
-						DHCP_Functions::Relay_Request_Packet(_upstreamserver.Get_IPAddress(), _upstreamserver.Get_Port(), type, server, iface, client);
-				}
-			}
+				client->Get_DHCP_Client()->Set_State(CLIENTSTATE::DHCP_RELAY);
+				client->response = new Packet(type, *packet, packet->get_Length());
 
-			delete client->response;
-			client->response = nullptr;
+				for (DHCP_UPSTREAMSERVER& _upstreamserver : this->upstreamServers)
+				{
+					switch (type)
+					{
+					case DHCP_SERVER:
+					case BINL_SERVER:
+						if (client->Get_ServiceType() == server->Get_Interface(type, iface)->Get_ServiceType())
+							DHCP_Functions::Relay_Request_Packet(_upstreamserver.Get_IPAddress(), _upstreamserver.Get_Port(), type, server, iface, client);
+					}
+				}
+
+				delete client->response;
+				client->response = nullptr;
+			}
+			else
+			{
+				Handle_DHCP_Response(type, server, iface, client, packet);
+			}
 		}
 
 		void DHCP_Service::Handle_DHCP_Response(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
@@ -222,16 +235,32 @@ namespace Namiono
 		{
 			client->response = new Packet(type, *packet, packet->get_Length());
 
-			printf("[I] DHCP : Response on %s (from %s) for %s...\n", Functions::AddressStr(
-				server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
-				Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr).c_str(),
-				packet->get_hwaddress().c_str());
+			if (client->Get_DHCP_Client()->GetIsRelayedPacket())
+			{
+				printf("[I] DHCP : Relayed Response on %s (from %s) for %s...\n", Functions::AddressStr(server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+					Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr).c_str(), packet->get_hwaddress().c_str());
+			}
 
 			switch (client->Get_DHCP_Client()->Get_Vendor())
 			{
+			case PXEServer:
 			case PXEClient:
 				if (settings->PXEBOOTMENUE == 1)
 				{
+					if (Network::Network::Get_BootServers()->size() == 0)
+					{
+						std::vector<_IPADDR> addresses;
+						addresses.emplace_back(server->Get_Interface(type, iface)->Get_IPAddress());
+
+						BootServerType bsType = BootServerType::PXEBootstrapServer;
+
+						if (client->Get_DHCP_Client() ->GetIsWDSRequest() || client->Get_DHCP_Client()->GetIsWDSResponse())
+							bsType = BootServerType::WindowsNTBootServer;
+
+						DHCP_Functions::Add_BootServer(Network::Network::Get_BootServers(), bsType,
+							server->Get_Interface(type, iface)->Get_ServerName(), addresses, client->Get_DHCP_Client()->GetBootfile());
+					}
+
 					DHCP_Functions::Create_BootServerList(Network::Network::Get_BootServers(), client);
 					DHCP_Functions::Generate_Bootmenu_From_ServerList(settings, Network::Network::Get_BootServers(), client);
 
@@ -272,8 +301,33 @@ namespace Namiono
 			}
 
 			client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(255)));
+			client->Get_DHCP_Client()->Set_State(CLIENTSTATE::DHCP_CLIENTRESPONSE);
 
-			DHCP_Functions::Relay_Response_Packet(&this->relaySessions, type, server, iface, client, packet);
+			if (client->Get_DHCP_Client()->GetIsRelayedPacket())
+			{
+				DHCP_Functions::Relay_Response_Packet(&this->relaySessions, type, server, iface, client, packet);
+				client->SetIncomingInterface(DHCP_Functions::Handle_Relayed_Packet(type, server, iface, client->response));
+			}
+			else
+			{
+				client->Set_Client_Hint(packet->get_clientIP() == 0 ? INADDR_BROADCAST : packet->get_clientIP(), 68);
+				client->response->set_opcode(DHCP_OPCODE::BOOTREPLY);
+				client->response->set_flags(packet->get_flags());
+				client->response->set_nextIP(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress());
+				client->response->set_servername(server->Get_Interface(type, client->GetIncomingInterface())->Get_ServerName());
+				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54),
+					static_cast<_ULONG>(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress())));
+
+				// Remove the Request List!
+				client->response->Remove_DHCPOption(55);
+
+				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(53), static_cast<_BYTE>(DHCP_MSGTYPE::OFFER)));
+				client->response->Commit();
+
+				if (server->Get_Interface(type, client->GetIncomingInterface())->Get_ServiceType() == type)
+					server->Send(type, client->GetIncomingInterface(), client);
+			}
+
 			client->Get_DHCP_Client()->Set_State(DHCP_DONE);
 			delete client->response;
 			client->response = nullptr;

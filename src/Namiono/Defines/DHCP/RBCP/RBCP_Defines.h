@@ -31,9 +31,9 @@ namespace Namiono
 
 		typedef enum BootServerType
 		{
-			PXEBootstrapServer = 0x0000,
-			WindowsNTBootServer = 0x0001,
-			IntelLCMBootServer = 0x0002,
+			PXEBootstrapServer = 0x0001,
+			WindowsNTBootServer = 0x0002,
+			IntelLCMBootServer = 0x0003,
 			PXEAPITestServer = 0xffff
 		} BootServerType;
 
@@ -50,16 +50,18 @@ namespace Namiono
 			std::string Bootfile = "";
 
 			_USHORT Ident = 0;
+			BootServerType Type = BootServerType::PXEBootstrapServer;
 
 			BootServerEntry()
 			{
 				ClearBuffer(this, sizeof(*this));
 			}
 
-			BootServerEntry(const _USHORT& id, const std::string& desc, const std::vector<_IPADDR>& adresses,
+			BootServerEntry(const _USHORT& id, BootServerType type, const std::string& desc, const std::vector<_IPADDR>& adresses,
 				const std::string& filename = "")
 			{
 				Ident = id;
+				Type = type;
 				Description = desc;
 				Bootfile = filename;
 				Addresses = adresses;

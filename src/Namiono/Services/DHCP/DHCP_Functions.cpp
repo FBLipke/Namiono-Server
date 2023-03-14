@@ -10,9 +10,6 @@ DHCP_Functions::~DHCP_Functions()
 
 void DHCP_Functions::Generate_Bootmenu_From_ServerList(SETTINGS* settings, std::vector<BootServerEntry>* serverlist, Client* client)
 {
-	if (serverlist->size() == 0)
-		return;
-
 	_SIZET offset = 0;
 	char menubuffer[1024];
 
@@ -20,7 +17,7 @@ void DHCP_Functions::Generate_Bootmenu_From_ServerList(SETTINGS* settings, std::
 
 	/* id */
 	_USHORT id = 0;
-	_USHORT _LE_ID = LE16(id);
+	_USHORT _LE_ID = ntohs(id);
 	memcpy(&menubuffer[offset], &id, sizeof id);
 	offset += sizeof id;
 
@@ -38,9 +35,9 @@ void DHCP_Functions::Generate_Bootmenu_From_ServerList(SETTINGS* settings, std::
 		if (serverlist->at(i).Description.size() == 0)
 			continue;
 
-		/* id */
-		id = serverlist->at(i).Ident;
-		_LE_ID = LE16(id);
+		/* type */
+		id = serverlist->at(i).Type;
+		_LE_ID = id;
 		memcpy(&menubuffer[offset], &_LE_ID, sizeof _LE_ID);
 		offset += sizeof _LE_ID;
 
@@ -83,12 +80,12 @@ void DHCP_Functions::Generate_Bootmenu_From_ServerList(SETTINGS* settings, std::
 
 void DHCP_Functions::Create_BootServerList(std::vector<BootServerEntry>* serverlist, Client* client)
 {
+	if (serverlist->size() == 0)
+		return;
+
 	_BYTE offset = 0;
 	char* serverbuffer = new char[1024];
 	ClearBuffer(serverbuffer, 1024);
-
-	if (serverlist->size() == 0)
-		return;
 
 	for (_USHORT i = 0; i < serverlist->size(); i++)
 	{
@@ -96,8 +93,8 @@ void DHCP_Functions::Create_BootServerList(std::vector<BootServerEntry>* serverl
 			serverlist->at(i).Description.size() == 0)
 			continue;
 
-		_USHORT id = serverlist->at(i).Ident;
-		_USHORT _LE_ID = LE16(id);
+		_USHORT id = serverlist->at(i).Type;
+		_USHORT _LE_ID = ntohs(id);
 		memcpy(&serverbuffer[offset], &_LE_ID, sizeof _LE_ID);
 		offset += sizeof _LE_ID;
 
@@ -174,8 +171,6 @@ void DHCP_Functions::Relay_Request_Packet(const _IPADDR& addr, const _USHORT& po
 
 	for (Iface& _iface : _interfaces)
 	{
-		
-		
 		server->Send(type, _iface.Get_Id(), client);
 	}
 }
@@ -234,34 +229,23 @@ _USHORT DHCP_Functions::Handle_Relayed_Packet(const ServiceType& type, Server * 
 void DHCP_Functions::Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSION>* relaySessions,
 	const ServiceType& type, Server * server, _USHORT iface, Client * client, Packet* packet)
 {
-	client->Get_DHCP_Client()->Set_State(CLIENTSTATE::DHCP_CLIENTRESPONSE);
+	
 
-	if (relaySessions->find(client->Get_ID()) == relaySessions->end())
-	{
-		client->SetIncomingInterface(DHCP_Functions::Handle_Relayed_Packet(type, server, iface, client->response));
-		client->Set_Client_Hint(packet->get_clientIP() == 0 ? INADDR_BROADCAST : packet->get_clientIP(), 68);
-		client->response->set_flags(packet->get_flags());
-	}
-	else
+	if (relaySessions->find(client->Get_ID()) != relaySessions->end())
 	{
 		client->response->set_relayIP(relaySessions->at(client->Get_ID()).Get_RelayIP());
-
-
 		client->Set_Client_Hint(relaySessions->at(client->Get_ID()).Get_RemoteIP(), 67);
 		client->SetIncomingInterface(relaySessions->at(client->Get_ID()).Get_Interface());
-		
 		client->response->set_flags(DHCP_FLAGS::Unicast);
-		
 		relaySessions->erase(client->Get_ID());
 	}
 
 	switch (type)
 	{
 	case DHCP_SERVER:
-
-
 		switch (client->Get_DHCP_Client()->Get_Vendor())
 		{
+		case PXEServer:
 		case PXEClient:
 			/*
 				Before we respond to the client we should fixup the server in the Packet, So that clients
@@ -289,18 +273,16 @@ void DHCP_Functions::Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSI
 	client->response->Commit();
 
 	if (server->Get_Interface(type, client->GetIncomingInterface())->Get_ServiceType() == type)
-	{
-		
 		server->Send(type, client->GetIncomingInterface(), client);
-	
-	}
 }
 
 void DHCP_Functions::Add_BootServer_To_ServerList(std::vector<BootServerEntry>* serverlist,
 	Server* server, Client * client, const std::string& serverName, const std::string& bootfile)
 {
-	if (client->Get_Server_Hint().sin_addr.s_addr == 0)
+	if (client->Get_Server_Hint().sin_addr.s_addr == 0 && serverlist->size() != 0)
+	{
 		return;
+	}
 
 	std::vector<_IPADDR> addrs;
 	addrs.emplace_back(client->Get_Server_Hint().sin_addr.s_addr);
@@ -310,7 +292,12 @@ void DHCP_Functions::Add_BootServer_To_ServerList(std::vector<BootServerEntry>* 
 	if (_name.size() == 0)
 		_name = Functions::AddressStr(client->Get_Server_Hint().sin_addr.s_addr);
 
-	DHCP_Functions::Add_BootServer(serverlist, std::string("(*) ") + _name, addrs, bootfile);
+	BootServerType bsType = BootServerType::PXEBootstrapServer;
+
+	if (client->Get_DHCP_Client()->GetIsWDSRequest() || client->Get_DHCP_Client()->GetIsWDSResponse())
+		bsType = BootServerType::WindowsNTBootServer;
+
+	DHCP_Functions::Add_BootServer(serverlist, bsType, std::string("(*) ") + _name, addrs, bootfile);
 }
 
 bool DHCP_Functions::Has_BootServer(std::vector<BootServerEntry>* serverlist, const _USHORT& id)
@@ -323,14 +310,14 @@ bool DHCP_Functions::Has_BootServer(std::vector<BootServerEntry>* serverlist, co
 	return entry != nullptr;
 }
 
-void DHCP_Functions::Add_BootServer(std::vector<BootServerEntry>* serverlist,
+void DHCP_Functions::Add_BootServer(std::vector<BootServerEntry>* serverlist, BootServerType bstype,
 	const std::string& name, const std::vector <_IPADDR>& addresses, const std::string& bootfile)
 {
 	_USHORT id = static_cast<_USHORT>(serverlist->size() + 1);
 
 	if (addresses.size() == 0)
 	{
-		printf("[E] Passed Bootserver %s with no addresses!\n", name.c_str());
+		printf("[E] Passed Bootserver %s without addresses!\n", name.c_str());
 		return;
 	}
 
@@ -340,7 +327,7 @@ void DHCP_Functions::Add_BootServer(std::vector<BootServerEntry>* serverlist,
 		return;
 	}
 
-	serverlist->emplace_back(BootServerEntry(id, name, addresses, bootfile.size() == 0 ? "" : bootfile));
+	serverlist->emplace_back(BootServerEntry(id, bstype, name, addresses, bootfile.size() == 0 ? "" : bootfile));
 }
 
 void DHCP_Functions::Handle_IPXE_Options(Server * server, _USHORT iface, Client * client, Packet * response)

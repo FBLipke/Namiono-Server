@@ -158,8 +158,7 @@ namespace Namiono
 							client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
 
 					client->Get_DHCP_Client()->Get_WDSClient()->SetRequestID(+1);
-					client->Get_DHCP_Client()->Set_State(static_cast<CLIENTSTATE>(
-						client->Get_DHCP_Client()->Get_WDSClient()->GetActionDone()) == 0
+					client->Get_DHCP_Client()->Set_State(static_cast<CLIENTSTATE>(client->Get_DHCP_Client()->Get_WDSClient()->GetActionDone()) == 0
 						? CLIENTSTATE::DHCP_WAITING : CLIENTSTATE::DHCP_DONE);
 				}
 
@@ -229,9 +228,10 @@ namespace Namiono
 							client->Get_DHCP_Client()->Get_VendorOpts()->clear();
 
 							client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(
-								static_cast<_BYTE>(PXE_BOOT_ITEM), static_cast<_BYTE>(4), item);
+								static_cast<_BYTE>(PXE_BOOT_ITEM), static_cast<_BYTE>(4), LE16(item));
 						}
 					}
+					printf("%d\n", _type);
 				}
 
 				client->Get_DHCP_Client()->SetNextServer(_bootServer);
@@ -245,8 +245,7 @@ namespace Namiono
 
 				client->response->set_servername(_serverName);
 
-				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(1),
-					static_cast<_ULONG>(server->Get_Interface(type, iface)->Get_Netmask())));
+				// client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(1),	static_cast<_ULONG>(server->Get_Interface(type, iface)->Get_Netmask())));
 
 				client->response->Add_DHCPOption(DHCP_Option(54, client->Get_DHCP_Client()->GetNextServer()));
 				client->response->Add_DHCPOption(DHCP_Option(150, client->Get_DHCP_Client()->GetNextServer()));

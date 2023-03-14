@@ -48,7 +48,7 @@ namespace Namiono
 		{
 			char out[32];
 			ClearBuffer(out, sizeof out);
-			std::string mac = "";
+			std::string mac = std::string("");
 
 			sprintf(out, "%02X:%02X:%02X:%02X:%02X:%02X",
 				static_cast<_BYTE>(macBuffer[0]),
@@ -97,9 +97,6 @@ namespace Namiono
 			return result;
 		}
 
-		/*
-		 * Compare Memory or Strings...
-		*/
 		bool Functions::Compare(const char* p1, const char* p2, const _SIZET& length)
 		{
 			return memcmp(p1, p2, length) == 0;

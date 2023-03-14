@@ -102,18 +102,6 @@
     <ClInclude Include="src\Namiono\Defines\Namiono_Defines.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="lib\sqlite\sqlite3.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="lib\sqlite\sqlite3ext.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Namiono\Network\Server\BaseServer.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Namiono\Network\Server\BaseInterface.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="src\Namiono\Network\Client\HTTP\HTTP_Client.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -177,15 +165,6 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="src\Namiono\Network\Client\TFTP\TFTP_Client.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="lib\sqlite\sqlite3.c">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Namiono\Network\Server\BaseServer.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Namiono\Network\Server\BaseInterface.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="src\Namiono\Network\Client\HTTP\HTTP_Client.cpp">

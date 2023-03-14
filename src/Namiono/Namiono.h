@@ -44,10 +44,8 @@ using namespace Namiono::Common;
 #include <Namiono/Network/Client/Client.h>
 
 #include <Namiono/Network/Server/Interface.h>
-#include <Namiono/Network/Server/BaseInterface.h>
 
 #include <Namiono/Network/Server/Server.h>
-#include <Namiono/Network/Server/BaseServer.h>
 
 #include <Namiono/Services/Service.h>
 #include <Namiono/Services/DHCP/DHCP_Functions.h>

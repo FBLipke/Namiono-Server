@@ -14,7 +14,7 @@ public:
 		Server* server, Client * client, const std::string& serverName, const std::string& bootfile);
 
 	static bool Has_BootServer(std::vector<BootServerEntry>* serverlist, const _USHORT & id);
-	static void Add_BootServer(std::vector<BootServerEntry>* serverlist,
+	static void Add_BootServer(std::vector<BootServerEntry>* serverlist, BootServerType bstype,
 		const std::string& name, const std::vector <_IPADDR>& addresses, const std::string& bootfile);
 
 	static void Generate_Bootmenu_From_ServerList(SETTINGS* settings, std::vector<BootServerEntry>* serverlist, Client* client);
