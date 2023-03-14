@@ -103,7 +103,7 @@ namespace Namiono
 
 		std::string CurrentDirectory()
 		{
-			char cCurrentPath[255];
+			char cCurrentPath[MAX_PATH];
 			ClearBuffer(cCurrentPath, sizeof cCurrentPath);
 
 			_GET_CUR_WORKINGDIR(cCurrentPath, sizeof cCurrentPath);
