@@ -234,7 +234,18 @@ void DHCP_Functions::Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSI
 	if (relaySessions->find(client->Get_ID()) != relaySessions->end())
 	{
 		client->response->set_relayIP(relaySessions->at(client->Get_ID()).Get_RelayIP());
-		client->Set_Client_Hint(relaySessions->at(client->Get_ID()).Get_RemoteIP(), 67);
+		
+		switch (type)
+		{
+		case DHCP_SERVER:
+			client->Set_Client_Hint(relaySessions->at(client->Get_ID()).Get_RemoteIP(), 67);
+			break;
+		case BINL_SERVER:
+			client->Set_Client_Hint(relaySessions->at(client->Get_ID()).Get_RemoteIP(), 4011);
+			break;
+		default:
+			break;
+		}
 		client->SetIncomingInterface(relaySessions->at(client->Get_ID()).Get_Interface());
 		client->response->set_flags(DHCP_FLAGS::Unicast);
 		relaySessions->erase(client->Get_ID());
