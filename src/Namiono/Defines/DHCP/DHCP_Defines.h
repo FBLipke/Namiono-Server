@@ -160,6 +160,17 @@ namespace Namiono
 					memcpy(&Value, &value, Length);
 			}
 
+			DHCP_Option(const _BYTE& opt, const _BYTE length, const _ULONG& value)
+			{
+				Option = opt;
+				Length = length;
+
+				ClearBuffer(&Value, Length + 1);
+
+				if (Length != 0)
+					memcpy(&Value, &value, Length);
+			}
+
 			DHCP_Option(const _BYTE& opt, const _UINT& value)
 			{
 				Option = opt;

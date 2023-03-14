@@ -26,6 +26,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <ifaddrs.h>
 #include <netdb.h>
 #include <strings.h>
+
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
+
 #include <string.h>
 #include <errno.h>
 #include <stdarg.h>

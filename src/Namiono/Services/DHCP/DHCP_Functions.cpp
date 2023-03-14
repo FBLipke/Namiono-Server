@@ -156,7 +156,7 @@ void DHCP_Functions::Relay_Request_Packet(const _IPADDR& addr, const _USHORT& po
 	switch (client->Get_DHCP_Client()->Get_Vendor())
 	{
 	case PXEClient:
-		client->response->Add_DHCPOption(DHCP_Option(54, client->Get_Relay_Hint().sin_addr.s_addr));
+		client->response->Add_DHCPOption(DHCP_Option(54, 4, client->Get_Relay_Hint().sin_addr.s_addr));
 		break;
 	default:
 		break;
@@ -242,6 +242,7 @@ void DHCP_Functions::Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSI
 
 	switch (type)
 	{
+	case BINL_SERVER:
 	case DHCP_SERVER:
 		switch (client->Get_DHCP_Client()->Get_Vendor())
 		{

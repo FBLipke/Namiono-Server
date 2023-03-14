@@ -264,6 +264,7 @@ namespace Namiono
 					DHCP_Functions::Create_BootServerList(Network::Network::Get_BootServers(), client);
 					DHCP_Functions::Generate_Bootmenu_From_ServerList(settings, Network::Network::Get_BootServers(), client);
 
+					
 					RBCP_DISCOVERYCONTROL _control = static_cast<RBCP_DISCOVERYCONTROL>
 						(client->Get_DHCP_Client()->Get_RBCPClient()->Get_Control());
 
@@ -279,6 +280,7 @@ namespace Namiono
 						client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_MTFTP_CLIENT_PORT), settings->MTFTP_CPORT);
 					}
 
+					
 					if (settings->NBDOMAIN.size() != 0)
 						client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_DOMAIN), settings->NBDOMAIN);
 					
@@ -287,10 +289,11 @@ namespace Namiono
 					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_CONFIGURED), static_cast<_BYTE>(1));
 					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_VERSION), LE32(static_cast<_UINT>(1)));
 					client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(static_cast<_BYTE>(PXE_LCM_SERIALNO), std::string("Namiono - Server 0.5"));
-
+				/*
 					if (client->Get_DHCP_Client()->Get_VendorOpts()->size() != 0)
 						client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(43),
 							*client->Get_DHCP_Client()->Get_VendorOpts()));
+				*/
 				}
 
 				if (client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile().size() != 0 && !client->Get_DHCP_Client()->GetIsWDSResponse())
@@ -315,12 +318,16 @@ namespace Namiono
 				client->response->set_flags(packet->get_flags());
 				client->response->set_nextIP(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress());
 				client->response->set_servername(server->Get_Interface(type, client->GetIncomingInterface())->Get_ServerName());
+#ifndef _WIN32
 				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54),
-					static_cast<_ULONG>(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress())));
-
+					static_cast<_IPADDR>(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress())));
+#else
+				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54), 
+					static_cast<_IPADDR>(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress())));
+#endif
 				// Remove the Request List!
 				client->response->Remove_DHCPOption(55);
-
+				client->response->set_filename(client->Get_DHCP_Client()->GetBootfile());
 				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(53), static_cast<_BYTE>(DHCP_MSGTYPE::OFFER)));
 				client->response->Commit();
 

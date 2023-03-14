@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <limits>
 #pragma once
 
-typedef unsigned short _USHORT;
+typedef uint16_t _USHORT;
 typedef unsigned long _ULONG;
 typedef unsigned int _UINT;
 typedef int _INT32;
