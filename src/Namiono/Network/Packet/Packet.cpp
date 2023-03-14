@@ -189,8 +189,12 @@ namespace Namiono
 
 			Add_DHCPOption(DHCP_Option(53, static_cast<_BYTE>(msgType)));
 
+			
 			if (packet.Has_DHCPOption(97))
 				Add_DHCPOption(packet.Get_DHCPOption(97));
+
+			if (Has_DHCPOption(50))
+				Remove_DHCPOption(50);
 		}
 
 		Packet::Packet(const ServiceType& serviceType, Packet& packet, const _SIZET& length)
