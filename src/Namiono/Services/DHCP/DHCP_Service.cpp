@@ -299,6 +299,12 @@ namespace Namiono
 				if (client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile().size() != 0 && !client->Get_DHCP_Client()->GetIsWDSResponse())
 					client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252), client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
 				break;
+			case AAPLBSDPC:
+				if (client->Get_DHCP_Client()->GetIsBSDPRequest())
+					return;
+
+				// Apple Clients requests sometimes a specific Reply Port...
+				client->Set_Port(client->Get_DHCP_Client()->Get_BSDPClient()->Get_ReplyPort());
 			default:
 				break;
 			}
@@ -313,7 +319,7 @@ namespace Namiono
 			}
 			else
 			{
-				client->Set_Client_Hint(packet->get_clientIP() == 0 ? INADDR_BROADCAST : packet->get_clientIP(), 68);
+				client->Set_Client_Hint(packet->get_clientIP() == 0 ? INADDR_BROADCAST : packet->get_clientIP(), client->Get_Port());
 				client->response->set_opcode(DHCP_OPCODE::BOOTREPLY);
 				client->response->set_flags(packet->get_flags());
 				client->response->set_nextIP(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress());

@@ -110,6 +110,7 @@ namespace Namiono
 
 			switch (client->Get_DHCP_Client()->Get_Vendor())
 			{
+			case PXEServer:
 			case PXEClient:
 				DHCP_Functions::Create_BootServerList(Network::Network::Get_BootServers(), client);
 
@@ -256,9 +257,6 @@ namespace Namiono
 					client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(43),
 						*client->Get_DHCP_Client()->Get_VendorOpts()));
 
-				client->response->Add_DHCPOption(DHCP_Option(53, static_cast<_BYTE>(ACK)));
-				client->response->Add_DHCPOption(DHCP_Option(60, client->Get_DHCP_Client()->Get_VendorString()));
-
 				_bootfile = client->Get_DHCP_Client()->GetBootfile();
 				DHCP_Functions::Handle_WDS_Options(settings, type, server, iface, client);
 
@@ -267,10 +265,18 @@ namespace Namiono
 					client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252),
 						client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
 				break;
+			case AAPLBSDPC:
+				if (client->Get_DHCP_Client()->GetIsBSDPRequest())
+					return;
+
+				client->Set_Port(client->Get_DHCP_Client()->Get_BSDPClient()->Get_ReplyPort());
+				break;
 			default:
 				break;
 			}
-
+			
+			client->response->Add_DHCPOption(DHCP_Option(53, static_cast<_BYTE>(ACK)));
+			client->response->Add_DHCPOption(DHCP_Option(60, client->Get_DHCP_Client()->Get_VendorString()));
 			client->response->set_filename(_bootfile);
 			client->response->Commit();
 			server->Send(type, iface, client);
