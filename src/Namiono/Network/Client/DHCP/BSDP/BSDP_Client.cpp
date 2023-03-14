@@ -25,7 +25,7 @@ namespace Namiono
 			this->SelectedImage = new _UINT(1);
 			this->attributes = new BSDP_ATTIBUTE(Install);
 			this->ServerIdent = new _IPADDR(0);
-			this->ReplyPort = new _USHORT(0);
+			this->ReplyPort = new _USHORT(68);
 		}
 
 		BSDP_Client::~BSDP_Client()
