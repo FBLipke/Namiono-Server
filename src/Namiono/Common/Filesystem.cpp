@@ -60,6 +60,11 @@ namespace Namiono
 			return p.find_last_of(__pathSeperatorChar(), p.size()) == p.size();
 		}
 
+		bool __has_startslash(const std::string& p)
+		{
+			return p.find_last_of(__pathSeperatorChar(),p.size()) == 0;
+		}
+
 		_SIZET FileRead(char* dst, _SIZET length, FILE* handle)
 		{
 			_SIZET retval = 0;
@@ -76,13 +81,11 @@ namespace Namiono
 
 		bool WriteLeaseEntry(const std::string& filename, const std::string& ipaddress, const std::string& mac)
 		{
-			FILE * fp = fopen(filename.c_str(), "wa");
-
-			// 192.168.1.10;00:11:22:33:44:55;
+			FILE* fp = fopen(filename.c_str(), "wa");
 
 			fprintf(fp, "%s;%s\n", ipaddress.c_str(), mac.c_str());
-
 			fclose(fp);
+
 			return true;
 		}
 
@@ -116,16 +119,19 @@ namespace Namiono
 		{
 			std::string _path = p;
 
-			_path = Functions::Replace(_path, __pathSeperatorChar() + __pathSeperatorChar(), "/");
-
+#ifndef _WIN32
+		_path = Functions::Replace(_path,
+			__pathSeperatorChar() + __pathSeperatorChar(), "/");
+#endif
 			if (_path.find_first_of("/") == 1)
-				_path = _path.substr(1);
+				_path = _path.substr(0);
 
 #ifdef _WIN32
 			_path = Functions::Replace(_path, "/", __pathSeperatorChar());
 #else
-			_path = Functions::Replace(_path, "\\", __pathSeperatorChar());
+			_path = Functions::Replace(_path, "\\\\", __pathSeperatorChar());
 #endif // _WIN32
+
 			return _path;
 		}
 
@@ -176,14 +182,18 @@ namespace Namiono
 		std::string Combine(const std::string& p1, const std::string& p2 = "")
 		{
 			std::string _path = p1;
+			std::string _p2 = p2;
 
 			if (p1.size() == 0)
-				return p2;
+				return _p2;
+
+			if (__has_startslash(_p2))
+				_p2 = _p2.substr(1);
 
 			if (!__has_endingslash(_path))
 				_path = _path + __pathSeperatorChar();
 
-				return p2.size() != 0 ? __replaceSlash(_path + p2) : __replaceSlash(_path);
+				return _p2.size() != 0 ? __replaceSlash(_path + _p2) : __replaceSlash(_path);
 		}
 	}
 }

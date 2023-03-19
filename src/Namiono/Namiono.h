@@ -39,7 +39,6 @@ using namespace Namiono::Common;
 #include <Namiono/Network/Client/DHCP/IPXE/IPXE_Client.h>
 #include <Namiono/Network/Client/DHCP/DHCP_Client.h>
 #include <Namiono/Network/Client/TFTP/TFTP_Client.h>
-#include <Namiono/Network/Client/HTTP/HTTP_Client.h>
 
 #include <Namiono/Network/Client/Client.h>
 

@@ -61,14 +61,8 @@ namespace Namiono
 	{
 		printf("[I] Initializing...\n");
 
-		if (settings->ROOTDIR.size() == 0)
-		{
-			this->TFTPRootDir = Combine(CurrentDirectory(), "TFTP_Root");
-		}
-		else
-		{
-			this->TFTPRootDir = Combine(settings->ROOTDIR, "");
-		}
+		this->TFTPRootDir = settings->ROOTDIR.size() == 0 ?
+			Combine(CurrentDirectory(), "TFTP_Root") : Combine(settings->ROOTDIR, "");
 
 		if (!IsDirExist(this->TFTPRootDir))
 			if (!MakePath(this->TFTPRootDir))
@@ -138,6 +132,7 @@ namespace Namiono
 		printf("[I] Closing...\n");
 		this->network->Close();
 	}
+
 	SETTINGS* _Namiono::Get_Settings()
 	{
 		return this->settings;

@@ -36,6 +36,47 @@ namespace Namiono
 			return WSACleanup() == 0;
 		}
 #endif
+
+		void Network::ReadServerList()
+		{
+			const std::string _serverlistFile = Combine(this->settings->CONFDIR, "servers.txt");
+
+			FILE* fil = fopen(_serverlistFile.c_str(), "r");
+
+			if (fil == nullptr)
+			{
+				printf("[E] File \"%s\" not found!\n", _serverlistFile.c_str());
+				return;
+			}
+
+			char line[1024];
+			ClearBuffer(line, sizeof line);
+			while (fgets(line, sizeof line, fil) != nullptr)
+			{
+				char desc[64];
+				ClearBuffer(desc, sizeof desc);
+				char addr[1024];
+				ClearBuffer(addr, sizeof addr);
+
+				std::vector<_IPADDR> addrs;
+
+				if (sscanf(line, "%s | %s", &addr, &desc) != 0)
+				{
+					const std::string _addrline = std::string(addr);
+					std::vector<std::string> _addrs = Functions::Split(_addrline, std::string(","));
+
+					for (_SIZET i = 0; i < _addrs.size(); i++)
+						addrs.emplace_back(inet_addr(_addrs.at(i).c_str()));
+				}
+
+				for (_SIZET i = 0; i < addrs.size(); i++)
+					Get_UpstreamServers()->emplace_back(DHCP_UPSTREAMSERVER(addrs.at(i), 67));
+			}
+
+			fclose(fil);
+			fil = nullptr;
+		}
+
 		Network::Network(SETTINGS* settings, const std::string& rootDir)
 		{
 #ifdef _WIN32
@@ -48,44 +89,7 @@ namespace Namiono
 			this->settings = settings;
 
 			using namespace Namiono::Services;
-			std::string _serverlistFile = Combine(this->settings->CONFDIR, "servers.txt");
-
-			FILE* fil = fopen(_serverlistFile.c_str(), "r");
-
-			if (fil != nullptr)
-			{
-				char line[1024];
-				ClearBuffer(line, sizeof line);
-				while (fgets(line, sizeof line, fil) != nullptr)
-				{
-					char desc[64];
-					ClearBuffer(desc, sizeof desc);
-					char addr[1024];
-					ClearBuffer(addr, sizeof addr);
-
-					std::vector<_IPADDR> addrs;
-
-					if (sscanf(line, "%s | %s", &addr, &desc) != 0)
-					{
-						std::string _addrline = std::string(addr);
-						std::vector<std::string> _addrs = Functions::Split(_addrline, std::string(","));
-
-						for (_SIZET i = 0; i < _addrs.size(); i++)
-						{
-							addrs.emplace_back(inet_addr(_addrs.at(i).c_str()));
-						}
-					}
-
-					for (_SIZET i = 0; i < addrs.size(); i++)
-					{
-						Get_UpstreamServers()->emplace_back(DHCP_UPSTREAMSERVER(addrs.at(i), 67));
-					}
-				}
-
-				fclose(fil);
-			}
-			else
-				printf("[E] File \"%s\" not found!\n", _serverlistFile.c_str());
+			this->ReadServerList();
 
 			services.emplace(DHCP_SERVER, new DHCP_Service(this->settings, *Get_UpstreamServers()));
 			services.emplace(BINL_SERVER, new ProxyDHCP_Service(this->settings));

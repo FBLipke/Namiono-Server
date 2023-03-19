@@ -48,6 +48,7 @@ namespace Namiono
 			std::vector<Server> servers;
 			std::vector<std::thread>listenThreads;
 			SETTINGS* settings;
+			void ReadServerList();
 		};
 	}
 }

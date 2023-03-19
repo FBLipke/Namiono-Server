@@ -31,6 +31,9 @@ namespace Namiono
 				return;
 			}
 
+			if (!packet->Has_DHCPOption(53))
+				return;
+
 			Network::Network::Get_BootServers()->clear();
 			std::vector<_IPADDR> addresses;
 
@@ -52,35 +55,14 @@ namespace Namiono
 			switch (packet->get_opcode())
 			{
 			case BOOTREQUEST:
-				if (!packet->Has_DHCPOption(53))
-					return;
-
-				switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
-				{
-				case DHCP_MSGTYPE::DISCOVER:
-					printf("[I] DHCP : Request on %s (DISCOVER from %s)...\n", Functions::AddressStr(
-						server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
-						packet->get_hwaddress().c_str());
-					break;
-				case DHCP_MSGTYPE::REQUEST:
-					printf("[I] DHCP : Request on %s (REQUEST from %s)...\n", Functions::AddressStr(
-						server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
-						packet->get_hwaddress().c_str());
-					break;
-				case DHCP_MSGTYPE::INFORM:
-					printf("[I] DHCP : Request on %s (INFORM from %s)...\n", Functions::AddressStr(
-						server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
-						packet->get_hwaddress().c_str());
-					break;
-				default:
-					break;
-				}
-
 				switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
 				{
 				case DISCOVER:
 				case INFORM:
 				case REQUEST:
+					printf("[I] DHCP : Request on %s (REQUEST from %s)...\n", Functions::AddressStr(
+						server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+						packet->get_hwaddress().c_str());
 					this->Handle_DHCP_Request(type, server, iface, client, packet);
 					break;
 				default:
@@ -88,9 +70,6 @@ namespace Namiono
 				}
 				break;
 			case BOOTREPLY:
-				if (!packet->Has_DHCPOption(53))
-					return;
-
 				client->Get_DHCP_Client()->SetIsWDSResponse(packet->Has_DHCPOption(250));
 
 				switch (static_cast<DHCP_MSGTYPE>(packet->Get_DHCPOption(53).Get_Value_As_Byte()))
@@ -225,9 +204,7 @@ namespace Namiono
 				client->response = nullptr;
 			}
 			else
-			{
 				Handle_DHCP_Response(type, server, iface, client, packet);
-			}
 		}
 
 		void DHCP_Service::Handle_DHCP_Response(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
@@ -319,7 +296,7 @@ namespace Namiono
 			}
 			else
 			{
-				client->Set_Client_Hint(packet->get_clientIP() == 0 ? INADDR_BROADCAST : packet->get_clientIP(), htons(client->Get_Port()));
+				client->Set_Client_Hint(packet->get_clientIP() == 0 ? INADDR_BROADCAST : packet->get_clientIP(), 68);
 				client->response->set_opcode(DHCP_OPCODE::BOOTREPLY);
 				client->response->set_flags(packet->get_flags());
 				client->response->set_nextIP(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress());
@@ -342,6 +319,7 @@ namespace Namiono
 			}
 
 			client->Get_DHCP_Client()->Set_State(DHCP_DONE);
+
 			delete client->response;
 			client->response = nullptr;
 		}

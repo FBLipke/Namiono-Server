@@ -91,6 +91,7 @@ namespace Namiono
 			this->_local.sin_port = htons(this->_port);
 
 			_INT32 yes = 1;
+			_INT32 no = 0;
 			_INT32 val_length = sizeof(_INT32);
 
 			retval = setsockopt(this->_socket, SOL_SOCKET, SO_BROADCAST, (char*)&yes, val_length);
@@ -99,7 +100,7 @@ namespace Namiono
 				printf("[E] setsockopt: Cannot set SO_BROADCAST on Interface %u\n", this->Get_Id());
 			}
 
-			retval = setsockopt(this->_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, val_length);
+			retval = setsockopt(this->_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&no, val_length);
 			if (retval == SOCKET_ERROR)
 			{
 				printf("[E] setsockopt: Cannot set SO_REUSEADDR on Interface %u\n", this->Get_Id());
@@ -151,7 +152,13 @@ namespace Namiono
 			_INT32 retval = bind(this->_socket, reinterpret_cast<struct sockaddr*>(&this->_local), sizeof this->_local);
 			if (retval == SOCKET_ERROR)
 			{
+#ifdef _WIN32
+				printf("[E] bind: Cannot bind to Interface %u (WSA: %d)\n", this->Get_Id(), WSAGetLastError());
+#else
 				printf("[E] bind: Cannot bind to Interface %u\n", this->Get_Id());
+#endif
+
+				
 				this->Close();
 
 				return false;

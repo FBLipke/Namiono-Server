@@ -197,7 +197,9 @@ _USHORT DHCP_Functions::Handle_Relayed_Packet(const ServiceType& type, Server * 
 			if (relayOptions.at(i).Option == RemoteID)
 			{
 				remoteid = relayOptions.at(i).Get_Value_As_String();
+#if _DEBUG
 				printf("[D] Remote ID: %s\n", remoteid.c_str());
+#endif
 			}
 		}
 
@@ -211,8 +213,9 @@ _USHORT DHCP_Functions::Handle_Relayed_Packet(const ServiceType& type, Server * 
 	{
 		if (relayOptions.size() == 0)
 		{
+#if _DEBUG
 			printf("[D] Adding Relay informations...\n");
-
+#endif
 			relayOptions.emplace_back(DHCP_Option(static_cast<_BYTE>(RemoteID),
 				server->Get_Interface(type, iface)->Get_ServerName()));
 
@@ -246,6 +249,7 @@ void DHCP_Functions::Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSI
 		default:
 			break;
 		}
+
 		client->SetIncomingInterface(relaySessions->at(client->Get_ID()).Get_Interface());
 		client->response->set_flags(DHCP_FLAGS::Unicast);
 		relaySessions->erase(client->Get_ID());
@@ -334,10 +338,7 @@ void DHCP_Functions::Add_BootServer(std::vector<BootServerEntry>* serverlist, Bo
 	}
 
 	if (Has_BootServer(serverlist, id))
-	{
-		printf("[D] Bootserver already in the List...\n");
 		return;
-	}
 
 	serverlist->emplace_back(BootServerEntry(id, bstype, name, addresses, bootfile.size() == 0 ? "" : bootfile));
 }
@@ -365,8 +366,8 @@ void DHCP_Functions::Handle_IPXE_Options(Server * server, _USHORT iface, Client 
 
 void DHCP_Functions::Handle_WDS_Options(const SETTINGS* settings, const ServiceType& type, Server* server, _USHORT iface, Client * client)
 {
-	// WDS Options -> Used by WDSNBP
 	std::vector<DHCP_Option>* wdsOptions = new std::vector<DHCP_Option>();
+
 	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_NEXT_ACTION), static_cast<_BYTE>(client->Get_DHCP_Client()->Get_WDSClient()->GetNextAction()));
 	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_REQUEST_ID), static_cast<_ULONG>(htonl(client->Get_DHCP_Client()->Get_WDSClient()->GetRequestID())));
 
@@ -380,22 +381,18 @@ void DHCP_Functions::Handle_WDS_Options(const SETTINGS* settings, const ServiceT
 	}
 	
 	if (client->Get_DHCP_Client()->Get_WDSClient()->GetNextAction() == REFERRAL)
-	{
 		wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_REFERRAL_SERVER), client->Get_DHCP_Client()->Get_WDSClient()->GetReferalServer());
-	}
 
 	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_ACTION_DONE), static_cast<_BYTE>(client->Get_DHCP_Client()->Get_WDSClient()->GetActionDone()));
 
 	if (client->Get_DHCP_Client()->Get_WDSClient()->GetNextAction() == APPROVAL && client->Get_DHCP_Client()->Get_WDSClient()->GetWDSMessage().size() != 0)
-	{
 		wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_MESSAGE), client->Get_DHCP_Client()->Get_WDSClient()->GetWDSMessage());
-	}
 
 	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_END));
 	client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(250), *wdsOptions));
 
 	wdsOptions->clear();
-	delete wdsOptions;
 
+	delete wdsOptions;
 	wdsOptions = nullptr;
 }

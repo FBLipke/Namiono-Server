@@ -33,6 +33,9 @@ namespace Namiono
 					packet->get_hwaddress().c_str());
 				break;
 			case DHCP_MSGTYPE::OFFER:
+				printf("[I] ProxyDHCP : Request on %s (OFFER from %s)...\n", Functions::AddressStr(
+					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+					packet->get_hwaddress().c_str());
 				break;
 			case DHCP_MSGTYPE::REQUEST:
 				printf("[I] ProxyDHCP : Request on %s (REQUEST from %s)...\n", Functions::AddressStr(
@@ -44,7 +47,6 @@ namespace Namiono
 					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
 					packet->get_hwaddress().c_str());
 				break;
-
 			case DHCP_MSGTYPE::ACK:
 				printf("[I] ProxyDHCP : Request on %s (ACK from %s)...\n", Functions::AddressStr(
 					server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
@@ -76,9 +78,6 @@ namespace Namiono
 				{
 				case INFORM:
 				case REQUEST:
-
-
-
 					this->Handle_Request_Request(settings, type, server, iface, client, packet);
 					break;
 				default:
@@ -253,10 +252,11 @@ namespace Namiono
 #else
 				client->response->Add_DHCPOption(DHCP_Option(54, client->Get_DHCP_Client()->GetNextServer()));
 #endif // !_WIN32
+				/*
 				if (client->Get_DHCP_Client()->Get_VendorOpts()->size() != 0 && packet->Has_DHCPOption(43))
 					client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(43),
 						*client->Get_DHCP_Client()->Get_VendorOpts()));
-
+				*/
 				_bootfile = client->Get_DHCP_Client()->GetBootfile();
 				DHCP_Functions::Handle_WDS_Options(settings, type, server, iface, client);
 
@@ -264,6 +264,11 @@ namespace Namiono
 					&& !client->Get_DHCP_Client()->GetIsWDSResponse())
 					client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252),
 						client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
+				
+				client->response->Add_DHCPOption(DHCP_Option(53, static_cast<_BYTE>(ACK)));
+				client->response->Add_DHCPOption(DHCP_Option(60, client->Get_DHCP_Client()->Get_VendorString()));
+				client->response->set_filename(_bootfile);
+			
 				break;
 			case AAPLBSDPC:
 				if (!client->Get_DHCP_Client()->GetIsBSDPRequest())
@@ -275,9 +280,7 @@ namespace Namiono
 				break;
 			}
 			
-			client->response->Add_DHCPOption(DHCP_Option(53, static_cast<_BYTE>(ACK)));
-			client->response->Add_DHCPOption(DHCP_Option(60, client->Get_DHCP_Client()->Get_VendorString()));
-			client->response->set_filename(_bootfile);
+
 			client->response->Commit();
 			server->Send(type, iface, client);
 			client->Get_DHCP_Client()->Set_State(DHCP_DONE);

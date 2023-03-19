@@ -143,6 +143,7 @@ namespace Namiono
 					t = BINL_SERVER;
 					break;
 				default:
+					t = UNKNOWN_SERVICE;
 					continue;
 				}
 
@@ -194,13 +195,14 @@ namespace Namiono
 				if (!iface.isListening())
 					continue;
 
-				printf("[I] Listening on [%d] %s:%d\n", iface.Get_Id(),
-					Functions::AddressStr(iface.Get_IPAddress()).c_str(),
-						iface.Get_Port());
-
+				
 				FD_SET(iface.Get_Socket(), &srv->Get_Read_Descriptors());
 				FD_SET(iface.Get_Socket(), &srv->Get_Write_Descriptors());
 				FD_SET(iface.Get_Socket(), &srv->Get_Except_Descriptors());
+
+				printf("[I] Listening on [%d] %s:%d\n", iface.Get_Id(),
+					Functions::AddressStr(iface.Get_IPAddress()).c_str(),
+					iface.Get_Port());
 			}
 		}
 

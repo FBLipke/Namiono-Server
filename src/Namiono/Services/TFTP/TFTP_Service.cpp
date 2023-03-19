@@ -95,15 +95,12 @@ namespace Namiono
 		}
 
 		void TFTP_Service::Handle_ACK_Request(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
-			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
-		{
-			;
+			Namiono::Network::Client* client, Namiono::Network::Packet* packet) {
 			if (client->Get_TFTP_Client()->Get_State() != TFTP_DOWNLOAD)
 			{
 				client->Get_TFTP_Client()->Set_State(TFTP_ERROR);
 				return;
 			}
-
 
 #ifdef _WIN32
 			_USHORT blk = htons(client->Get_TFTP_Client()->GetCurrentBlock());
@@ -120,14 +117,14 @@ namespace Namiono
 			haveblk = tmpblk;
 #else
 			haveblk = htons(tmpblk);
-#endif // _WIN32
+#endif
 
 			bool isInSync = memcmp(&haveblk, &blk, sizeof(blk)) == 0;
 
 			if (!isInSync)
 			{
 				client->Get_TFTP_Client()->Set_State(CLIENTSTATE::TFTP_ERROR);
-				print_Error("TFTP : Client is out of Sync!");
+				print_Error("[E] TFTP : Client is out of Sync!");
 				return;
 			}
 
@@ -137,6 +134,7 @@ namespace Namiono
 
 				packet->Read(&newWinSize, sizeof newWinSize, 4);
 				client->Get_TFTP_Client()->SetWindowSize(newWinSize);
+				printf("[D] TFTP : Client requested new WindowSize: %d\n", newWinSize);
 			}
 
 			_SIZET chunk = 0;

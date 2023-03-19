@@ -124,7 +124,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\Namiono\Network\Client\HTTP\HTTP_Client.h" />
     <ClInclude Include="src\Namiono\Defines\DHCP\BSDP\BSDP_Defines.h" />
     <ClInclude Include="src\Namiono\Defines\DHCP\IPXE\IPXE_Defines.h" />
     <ClInclude Include="src\Namiono\Defines\DHCP\RBCP\RBCP_Defines.h" />
@@ -156,7 +155,6 @@
     <ClInclude Include="src\Namiono\Network\Client\TFTP\TFTP_Client.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Namiono\Network\Client\HTTP\HTTP_Client.cpp" />
     <ClCompile Include="src\Namiono\Network\Client\DHCP\IPXE\IPXE_Client.cpp" />
     <ClCompile Include="src\Namiono\Network\Client\DHCP\RBCP\RBCP_Client.cpp" />
     <ClCompile Include="src\Namiono\Network\Client\DHCP\BSDP\BSDP_Client.cpp" />

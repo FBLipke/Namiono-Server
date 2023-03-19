@@ -195,14 +195,8 @@ namespace Namiono
 					*this->bootfile = *this->prefix + "abortpxe.com";
 					break;
 				default:
-					if (this->GetIsWDSRequest())
-					{
-						*this->bootfile = *this->prefix + "pxeboot.n12";
-					}
-					else
-					{
-						*this->bootfile = *this->prefix + "wdsnbp.com";
-					}
+					*this->bootfile = this->GetIsWDSRequest() ?
+						*this->prefix + "pxeboot.n12" : *this->prefix + "wdsnbp.com";
 					break;
 				}
 				break;
@@ -217,15 +211,8 @@ namespace Namiono
 					this->wds->SetBCDfile("");
 					break;
 				default:
-					if (this->GetIsWDSRequest())
-					{
-						*this->bootfile = *this->prefix + "pxeboot.n12";
-					}
-					else
-					{
-						*this->bootfile = *this->prefix + "wdsnbp.com";
-
-					}
+					*this->bootfile = this->GetIsWDSRequest() ?
+						*this->prefix + "pxeboot.n12" : *this->prefix + "wdsnbp.com";
 					break;
 				}
 				break;

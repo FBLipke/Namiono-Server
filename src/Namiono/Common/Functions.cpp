@@ -70,31 +70,19 @@ namespace Namiono
 
 		std::vector<std::string> Functions::Split(const std::string& str, const std::string& token)
 		{
-			std::string tmp = str;
-			std::vector<std::string> result;
-			while (tmp.size())
+			std::vector<std::string> output;
+			std::string::size_type prev_pos = 0, pos = 0;
+
+			while ((pos = str.find(token, pos)) != std::string::npos)
 			{
-				_SIZET index = tmp.find(token);
-
-				if (index >= tmp.size())
-					break;
-
-				if (index != std::string::npos)
-				{
-					result.push_back(tmp.substr(0, index));
-					tmp = tmp.substr(index + token.size());
-
-					if (tmp.size() == 0)
-						result.push_back(tmp);
-				}
-				else
-				{
-					result.push_back(tmp);
-					tmp = "";
-				}
+				std::string substring(str.substr(prev_pos, pos - prev_pos));
+				output.push_back(substring);
+				prev_pos = ++pos;
 			}
 
-			return result;
+			output.push_back(str.substr(prev_pos, pos - prev_pos)); // Last word
+
+			return output;
 		}
 
 		bool Functions::Compare(const char* p1, const char* p2, const _SIZET& length)
