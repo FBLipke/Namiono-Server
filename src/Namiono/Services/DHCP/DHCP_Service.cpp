@@ -63,6 +63,7 @@ namespace Namiono
 					printf("[I] DHCP : Request on %s (REQUEST from %s)...\n", Functions::AddressStr(
 						server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
 						packet->get_hwaddress().c_str());
+
 					this->Handle_DHCP_Request(type, server, iface, client, packet);
 					break;
 				default:
@@ -184,7 +185,7 @@ namespace Namiono
 				}
 			}
 
-			if (this->upstreamServers.size() != 0)
+			if (this->upstreamServers.size() > 1)
 			{
 				client->Get_DHCP_Client()->Set_State(CLIENTSTATE::DHCP_RELAY);
 				client->response = new Packet(type, *packet, packet->get_Length());

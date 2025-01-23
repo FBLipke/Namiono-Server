@@ -45,6 +45,9 @@ namespace Namiono
 			void SetBytesRead(const _SIZET & bytes);
 			const std::string & GetFilename() const;
 			void SetFilename(const std::string & filename);
+
+			void ResetState(const _USHORT& block);
+			void AddToBacklog(const _USHORT& block, const _SIZET& bytesRead, const _SIZET& bytesToRead);
 		private:
 			_BYTE* retries = nullptr;
 			_BYTE* windowsize = nullptr;
@@ -53,6 +56,7 @@ namespace Namiono
 			_USHORT* blocksize = nullptr;
 			CLIENTSTATE* tftp_state = nullptr;
 			std::string* filename = nullptr;
+			std::map<_USHORT, TFTP_BackLogEntry> PacketBackLog;
 
 			_SIZET* bytesread = nullptr;
 			_SIZET* bytesToRead = nullptr;
