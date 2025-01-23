@@ -102,31 +102,18 @@ namespace Namiono
 				return;
 			}
 
-#ifdef _WIN32
-			_USHORT blk = htons(client->Get_TFTP_Client()->GetCurrentBlock());
-#else
 			_USHORT blk = client->Get_TFTP_Client()->GetCurrentBlock();
-#endif // _WIN32
-
 			_USHORT tmpblk = 0;
 			_USHORT haveblk = 0;
 
 			memcpy(&tmpblk, &packet->Get_Buffer()[2], sizeof(_USHORT));
 			
-#ifdef _WIN32
-			haveblk = tmpblk;
-#else
 			haveblk = htons(tmpblk);
-#endif
 
 			bool isInSync = memcmp(&haveblk, &blk, sizeof(blk)) == 0;
 
 			if (!isInSync)
-			{
-				client->Get_TFTP_Client()->Set_State(CLIENTSTATE::TFTP_ERROR);
-				print_Error("[E] TFTP : Client is out of Sync!");
-				return;
-			}
+				client->Get_TFTP_Client()->ResetState(haveblk);
 
 			if (packet->get_Length() > 4)
 			{
@@ -156,6 +143,9 @@ namespace Namiono
 					1, chunk, client->Get_TFTP_Client()->Get_FileHandle())));
 				client->response->Commit();
 
+					client->Get_TFTP_Client()->AddToBacklog(client->Get_TFTP_Client()->GetCurrentBlock(),
+					client->Get_TFTP_Client()->GetBytesRead(), client->Get_TFTP_Client()->GetBytesToRead());
+				
 				server->Send(type, iface, client);
 
 				delete client->response;

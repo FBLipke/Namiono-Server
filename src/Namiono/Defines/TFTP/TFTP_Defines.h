@@ -68,5 +68,26 @@ namespace Namiono
 
 			}
 		} TFTP_Option;
+
+		typedef struct TFTP_BackLogEntry
+		{
+			_USHORT Block;
+			_SIZET BytesRead;
+			_SIZET BytesToRead;
+
+			TFTP_BackLogEntry(const _USHORT& block, const _SIZET& bytesRead, const _SIZET& bytesToRead)
+			{
+				ClearBuffer(this, sizeof(*this));
+
+				this->Block = block;
+				this->BytesRead = bytesRead;
+				this->BytesToRead = bytesToRead;
+			}
+
+			~TFTP_BackLogEntry()
+			{
+			}
+
+		} TFTP_BackLogEntry;
 	}
 }

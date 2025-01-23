@@ -60,6 +60,8 @@ namespace Namiono
 			delete this->windowsize;
 			this->windowsize = nullptr;
 
+			PacketBackLog.clear();
+
 			this->CloseFile();
 		}
 
@@ -190,6 +192,21 @@ namespace Namiono
 		void TFTP_Client::SetFilename(const std::string& filename)
 		{
 			*this->filename = filename;
+		}
+
+		void TFTP_Client::ResetState(const _USHORT& block)
+		{
+			if (this->PacketBackLog.find(block) != this->PacketBackLog.end())
+			{
+				this->SetCurrentBlock(this->PacketBackLog.at(block).Block);
+				this->SetBytesRead(this->PacketBackLog.at(block).BytesRead);
+				this->SetBytesToRead(this->PacketBackLog.at(block).BytesToRead);
+			}
+		}
+
+		void TFTP_Client::AddToBacklog(const _USHORT& block, const _SIZET& bytesRead, const _SIZET& bytesToRead)
+		{
+			this->PacketBackLog.emplace(block, TFTP_BackLogEntry(block, bytesRead, bytesToRead));
 		}
 	}
 }
