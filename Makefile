@@ -3,73 +3,77 @@ INC_NAMIONO = -I ./src/ -I ./src/Namiono/ -I ./src/Namiono/Network/ -I ./src/Nam
 INC_NAMIONO += -I ./src/Namiono/Network/Client/ -I ./src/Namiono/Network/Client/DHCP/ -I ./src/Namiono/Network/Client/DHCP/BSDP/ -I ./src/Namiono/Network/Client/DHCP/IPXE/ -I ./src/Namiono/Network/Client/DHCP/RBCP/ -I ./src/Namiono/Network/Client/DHCP/WDS/ -I ./src/Namiono/Network/Client/TFTP/
 INC_NAMIONO += -I ./src/Namiono/Network/Services/ -I ./src/Namiono/Network/Services/DHCP/ -I ./src/Namiono/Network/Services/TFTP/
 
-CXXFLAGS = -std=c++11 -fpermissive -pthread 
+CXXFLAGS = -std=c++14 -fpermissive -pthread 
 CXXFLAGS += $(INC_NAMIONO)  
 
-all: namiono
+all: envi clean namiono
 
-namiono: clean main.o environment.o Namiono.o Functions.o Network.o DHCP_Service.o ProxyDHCP_Service.o DHCP_Functions.o TFTP_Service.o Packet.o Client.o DHCP_Client.o IPXE_Client.o BSDP_Client.o RBCP_Client.o WDS_Client.o TFTP_Client.o Interface.o Server.o Filesystem.o
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) main.o environment.o Namiono.o Functions.o Network.o DHCP_Service.o ProxyDHCP_Service.o DHCP_Functions.o TFTP_Service.o Packet.o Client.o DHCP_Client.o IPXE_Client.o BSDP_Client.o RBCP_Client.o WDS_Client.o TFTP_Client.o Interface.o Server.o Filesystem.o -o namiono
+namiono: build/main.o build/environment.o build/Namiono.o build/Functions.o build/Network.o build/DHCP_Service.o build/ProxyDHCP_Service.o build/DHCP_Functions.o build/TFTP_Service.o build/Packet.o build/Client.o build/DHCP_Client.o build/IPXE_Client.o build/BSDP_Client.o build/RBCP_Client.o build/WDS_Client.o build/TFTP_Client.o build/Interface.o build/Server.o build/Filesystem.o
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ -o bin/namiono
 
-main.o: src/main.cpp
-	$(CXX) $(CXXFLAGS) -c src/main.cpp
+envi:
+	@mkdir -p build
+	@mkdir -p bin
 
-environment.o: src/Environment/environment.cpp
-	$(CXX) $(CXXFLAGS) -c src/Environment/environment.cpp
+build/main.o: src/main.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-Namiono.o: src/Namiono/Namiono.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Namiono.cpp
+build/environment.o: src/Environment/environment.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-Functions.o: src/Namiono/Common/Functions.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Common/Functions.cpp
+build/Namiono.o: src/Namiono/Namiono.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-Network.o: src/Namiono/Network/Network.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Network.cpp
+build/Functions.o: src/Namiono/Common/Functions.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-TFTP_Service.o: src/Namiono/Services/TFTP/TFTP_Service.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Services/TFTP/TFTP_Service.cpp
+build/Network.o: src/Namiono/Network/Network.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-DHCP_Service.o: src/Namiono/Services/DHCP/DHCP_Service.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Services/DHCP/DHCP_Service.cpp
+build/TFTP_Service.o: src/Namiono/Services/TFTP/TFTP_Service.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-ProxyDHCP_Service.o: src/Namiono/Services/DHCP/ProxyDHCP_Service.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Services/DHCP/ProxyDHCP_Service.cpp
+build/DHCP_Service.o: src/Namiono/Services/DHCP/DHCP_Service.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-DHCP_Functions.o: src/Namiono/Services/DHCP/DHCP_Functions.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Services/DHCP/DHCP_Functions.cpp
+build/ProxyDHCP_Service.o: src/Namiono/Services/DHCP/ProxyDHCP_Service.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-Packet.o: src/Namiono/Network/Packet/Packet.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Packet/Packet.cpp
+build/DHCP_Functions.o: src/Namiono/Services/DHCP/DHCP_Functions.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-Client.o: src/Namiono/Network/Client/Client.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Client/Client.cpp
+build/Packet.o: src/Namiono/Network/Packet/Packet.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-DHCP_Client.o: src/Namiono/Network/Client/DHCP/DHCP_Client.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Client/DHCP/DHCP_Client.cpp
+build/Client.o: src/Namiono/Network/Client/Client.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-BSDP_Client.o: src/Namiono/Network/Client/DHCP/BSDP/BSDP_Client.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Client/DHCP/BSDP/BSDP_Client.cpp
+build/DHCP_Client.o: src/Namiono/Network/Client/DHCP/DHCP_Client.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-RBCP_Client.o: src/Namiono/Network/Client/DHCP/RBCP/RBCP_Client.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Client/DHCP/RBCP/RBCP_Client.cpp
+build/BSDP_Client.o: src/Namiono/Network/Client/DHCP/BSDP/BSDP_Client.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
+
+build/RBCP_Client.o: src/Namiono/Network/Client/DHCP/RBCP/RBCP_Client.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 	
-IPXE_Client.o: src/Namiono/Network/Client/DHCP/IPXE/IPXE_Client.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Client/DHCP/IPXE/IPXE_Client.cpp
+build/IPXE_Client.o: src/Namiono/Network/Client/DHCP/IPXE/IPXE_Client.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-WDS_Client.o: src/Namiono/Network/Client/DHCP/WDS/WDS_Client.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Client/DHCP/WDS/WDS_Client.cpp
+build/WDS_Client.o: src/Namiono/Network/Client/DHCP/WDS/WDS_Client.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-TFTP_Client.o: src/Namiono/Network/Client/TFTP/TFTP_Client.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Client/TFTP/TFTP_Client.cpp
+build/TFTP_Client.o: src/Namiono/Network/Client/TFTP/TFTP_Client.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-Server.o: src/Namiono/Network/Server/Server.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Server/Server.cpp
+build/Server.o: src/Namiono/Network/Server/Server.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-Interface.o: src/Namiono/Network/Server/Interface.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Network/Server/Interface.cpp
+build/Interface.o: src/Namiono/Network/Server/Interface.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
-Filesystem.o: src/Namiono/Common/Filesystem.cpp
-	$(CXX) $(CXXFLAGS) -c src/Namiono/Common/Filesystem.cpp
+build/Filesystem.o: src/Namiono/Common/Filesystem.cpp
+	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
 clean:
-	rm -rf *.o namiono
+	rm -rf build/*.o bin/namiono
