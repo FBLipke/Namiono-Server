@@ -113,8 +113,6 @@ namespace Namiono
 		{
 			this->settings = settings;
 			this->callback = cb;
-
-
 			global_srv_ptr = this;
 		}
 
@@ -154,6 +152,7 @@ namespace Namiono
 
 		Server::~Server()
 		{
+			this->clients.clear();
 		}
 
 		bool Server::Init()
@@ -171,12 +170,7 @@ namespace Namiono
 			std::string _id = ident;
 
 			if (Has_Client(_id))
-			{
-				delete clients.at(_id);
-				clients.at(_id) = nullptr;
-
 				clients.erase(_id);
-			}
 		}
 
 		bool Server::Start()
@@ -200,7 +194,7 @@ namespace Namiono
 				FD_SET(iface.Get_Socket(), &srv->Get_Write_Descriptors());
 				FD_SET(iface.Get_Socket(), &srv->Get_Except_Descriptors());
 
-				printf("[I] Listening on [%d] %s:%d\n", iface.Get_Id(),
+				printf("[I] Server: Listening on [%d] %s:%d\n", iface.Get_Id(),
 					Functions::AddressStr(iface.Get_IPAddress()).c_str(),
 					iface.Get_Port());
 			}
@@ -262,10 +256,11 @@ namespace Namiono
 					if (rescanInterfaces)
 					{
 						srv->Close();
-						srv->Init();
-						srv->Start();
-						__AddSocketsToList(srv);
-
+						if(srv->Init())
+						{	
+							srv->Start();
+							__AddSocketsToList(srv);
+						}
 						rescanInterfaces = false;
 
 						continue;
@@ -299,9 +294,8 @@ namespace Namiono
 							char* buffer = new char[16385];
 							ClearBuffer(buffer, 16385);
 
-							_SIZET bytes = SOCKET_ERROR;
 							socklen_t remote_len = sizeof remote;
-							bytes = recvfrom(iface.Get_Socket(), buffer, 16386, 0,
+							_SIZET bytes = recvfrom(iface.Get_Socket(), buffer, USHRT_MAX, 0,
 								reinterpret_cast<struct sockaddr*>(&remote), &remote_len);
 
 							if (bytes == SOCKET_ERROR)
@@ -390,21 +384,21 @@ namespace Namiono
 				switch (client->Get_DHCP_Client()->Get_State())
 				{
 				case DHCP_RELAY:
-					this->Get_Interface(type, iface)->Send(client->Get_Relay_Hint(), client->response);
+					this->Get_Interface(type, iface)->Send(client->Get_Relay_Hint(), client->GetResponse());
 					break;
 				case DHCP_SERVERRESPONSE:
-					this->Get_Interface(type, iface)->Send(client->Get_Server_Hint(), client->response);
+					this->Get_Interface(type, iface)->Send(client->Get_Server_Hint(), client->GetResponse());
 					break;
 				case DHCP_CLIENTRESPONSE:
 				default:
-					this->Get_Interface(type, iface)->Send(client->Get_Client_Hint(), client->response);
+					this->Get_Interface(type, iface)->Send(client->Get_Client_Hint(), client->GetResponse());
 					break;
 				}
 
 				break;
 			case TFTP_SERVER:
 			default:
-				this->Get_Interface(type, iface)->Send(client->Get_Client_Hint(), client->response);
+				this->Get_Interface(type, iface)->Send(client->Get_Client_Hint(), client->GetResponse());
 				break;
 			}
 		}
@@ -436,8 +430,8 @@ namespace Namiono
 					iface.Close();
 			}
 
-			for (const std::pair<std::string,Client*>& client : this->clients)
-				client.second->HeartBeat();
+			for (const std::pair<std::string,std::shared_ptr<Client>>& client : this->clients)
+				client.second.get()->HeartBeat();
 		}
 
 		bool Server::Close()
@@ -490,13 +484,13 @@ namespace Namiono
 
 				clients.at(_id)->Set_ServiceType(t);
 
-				return clients.at(_id);
+				return clients.at(_id).get();
 			}
 
-			clients.emplace(_id, new Client(t, _ip, remote, _id));
+			clients.emplace(_id, std::make_shared<Client>(t, _ip, remote, _id));
 			clients.at(_id)->SetIncomingInterface(iface);
 
-			return clients.at(_id);
+			return clients.at(_id).get();
 		}
 
 		const _INT32 Server::_GetInterfacePosition(const _USHORT& id)

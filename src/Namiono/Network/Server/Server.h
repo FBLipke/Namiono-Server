@@ -63,11 +63,8 @@ namespace Namiono
 			SETTINGS* settings;
 			const _INT32 _GetInterfacePosition(const _USHORT& id);
 
-			
-
-			
 			std::vector<Iface> Interfaces;
-			std::map<std::string, Client*> clients;
+			std::map<std::string, std::shared_ptr<Client>> clients;
 		};
 	}
 }

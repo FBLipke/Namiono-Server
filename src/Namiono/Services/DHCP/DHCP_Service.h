@@ -13,8 +13,11 @@ namespace Namiono
 	{
 		class DHCP_Service : public Service {
 		public:
+#ifdef ENABLE_UPSTREAMSERVER
 			DHCP_Service(SETTINGS* settings, const std::vector<DHCP_UPSTREAMSERVER>& upstreamServers);
-
+#else
+			DHCP_Service(SETTINGS* settings);
+#endif
 			virtual void Handle_Service_Request(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
 				Namiono::Network::Client* client, Namiono::Network::Packet* packet);
 
@@ -31,12 +34,14 @@ namespace Namiono
 			
 			~DHCP_Service();
 		private:
-			std::vector<DHCP_UPSTREAMSERVER> upstreamServers;
+#ifdef ENABLE_UPSTREAMSERVER
+		std::vector<DHCP_UPSTREAMSERVER> upstreamServers;
+#endif
 			std::map<std::string, DHCP_RELAYSESSION> relaySessions;
 
 			SETTINGS* settings;
 
-			// Geerbt über Service
+			// Geerbt ï¿½ber Service
 
 		};
 	}

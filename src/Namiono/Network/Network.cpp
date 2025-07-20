@@ -19,7 +19,8 @@ namespace Namiono
 	{
 		void Handle_Request(ServiceType type, Server* server, _USHORT iface, Client* client, Packet* packet)
 		{
-			services.at(client->Get_ServiceType())->Handle_Service_Request(type, server, iface, client, packet);
+			services.at(client->Get_ServiceType()).get()->
+				Handle_Service_Request(type, server, iface, client, packet);
 		}
 
 #ifdef _WIN32
@@ -36,7 +37,7 @@ namespace Namiono
 			return WSACleanup() == 0;
 		}
 #endif
-
+#ifdef ENABLE_UPSTREAMSERVER
 		void Network::ReadServerList()
 		{
 			const std::string _serverlistFile = Combine(this->settings->CONFDIR, "servers.txt");
@@ -76,7 +77,7 @@ namespace Namiono
 			fclose(fil);
 			fil = nullptr;
 		}
-
+#endif
 		Network::Network(SETTINGS* settings, const std::string& rootDir)
 		{
 #ifdef _WIN32
@@ -89,11 +90,15 @@ namespace Namiono
 			this->settings = settings;
 
 			using namespace Namiono::Services;
+#ifdef ENABLE_UPSTREAMSERVER
 			this->ReadServerList();
 
-			services.emplace(DHCP_SERVER, new DHCP_Service(this->settings, *Get_UpstreamServers()));
-			services.emplace(BINL_SERVER, new ProxyDHCP_Service(this->settings));
-			services.emplace(TFTP_SERVER, new TFTP_Service(this->settings, rootDir));
+			services.emplace(DHCP_SERVER, std::make_shared<DHCP_Service>(this->settings, *Get_UpstreamServers()));
+#else
+			services.emplace(DHCP_SERVER, std::make_shared<DHCP_Service>(this->settings));
+#endif
+			services.emplace(BINL_SERVER, std::make_shared<ProxyDHCP_Service>(this->settings));
+			services.emplace(TFTP_SERVER, std::make_shared<TFTP_Service>(this->settings, rootDir));
 
 			servers.emplace_back(settings, Handle_Request);
 		}
@@ -144,11 +149,12 @@ namespace Namiono
 			return &serverlist;
 		}
 
+#ifdef ENABLE_UPSTREAMSERVER
 		std::vector<DHCP_UPSTREAMSERVER>* Network::Get_UpstreamServers()
 		{
 			return &dhcpservers;
 		}
-
+#endif
 		void Network::Close()
 		{
 			printf("[I] Closing network...\n");

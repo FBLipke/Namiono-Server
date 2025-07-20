@@ -88,7 +88,7 @@ typedef enum ServiceType
 
 typedef struct SETTINGS
 {
-	bool MULTICAST_SUPPORT = true;
+	bool MULTICAST_SUPPORT = false;
 	_BYTE DISCOVERY_MODE = 3;
 	_BYTE PXEBOOTMENUE = 1;
 	_BYTE PXEPROMPTTIMEOUT = 255;
@@ -107,8 +107,8 @@ typedef struct SETTINGS
 	std::string NBDOMAIN = "";
 
 	_USHORT TFTP_DEFAULT_BLOCKSIZE = 1024;
-	_USHORT MTFTP_SPORT = LE16(1759);
-	_USHORT MTFTP_CPORT = LE16(1758);
+	_USHORT MTFTP_SPORT = htons(1759);
+	_USHORT MTFTP_CPORT = htons(1758);
 
 	_ULONG SERVER_UPDATE_DELAY = 60;
 	_BYTE MAX_HOPS = 4;
@@ -284,8 +284,8 @@ public:
 			name.c_str(), this->targetNameData, 0));
 
 		this->targetName.Set_Position(48);
-		this->targetInfoData.emplace_back(new NTLMSSP_TARGETINFO_ENTRY(
-			NBDomain, this->targetNameData, this->targetInfo.Get_Length()));
+		this->targetInfoData.emplace_back(std::make_unique<NTLMSSP_TARGETINFO_ENTRY>
+			(NBDomain, this->targetNameData, this->targetInfo.Get_Length()));
 	}
 } NTLMSSP_MESSAGE;
 

@@ -96,7 +96,7 @@ namespace Namiono
 		void ProxyDHCP_Service::Handle_Request_Request(const SETTINGS* settings, const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
-			client->response = new Packet(type, *packet, 1024, DHCP_MSGTYPE::ACK);
+			client->SetResponse(type, *packet, 1024, DHCP_MSGTYPE::ACK);
 			client->Get_DHCP_Client()->SetIsWDSRequest(packet->Has_DHCPOption(250));
 			std::vector<DHCP_Option> options;
 
@@ -154,7 +154,7 @@ namespace Namiono
 					}
 
 					if (client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile().size() != 0)
-						client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252),
+						client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252),
 							client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
 
 					client->Get_DHCP_Client()->Get_WDSClient()->SetRequestID(+1);
@@ -235,26 +235,26 @@ namespace Namiono
 				}
 
 				client->Get_DHCP_Client()->SetNextServer(_bootServer);
-				client->response->set_nextIP(client->Get_DHCP_Client()->GetNextServer());
+				client->GetResponse()->set_nextIP(client->Get_DHCP_Client()->GetNextServer());
 
 				if (_serverName.size() == 0)
 					_serverName = Functions::AddressStr(client->Get_DHCP_Client()->GetNextServer());
 				_serverName = Functions::Replace(_serverName, "(*) ", "");
 
-				client->response->Add_DHCPOption(DHCP_Option(66, _serverName));
+				client->GetResponse()->Add_DHCPOption(DHCP_Option(66, _serverName));
 
-				client->response->set_servername(_serverName);
+				client->GetResponse()->set_servername(_serverName);
 
 				// client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(1),	static_cast<_ULONG>(server->Get_Interface(type, iface)->Get_Netmask())));
 
 #ifndef _WIN32
-				client->response->Add_DHCPOption(DHCP_Option(54, 4, client->Get_DHCP_Client()->GetNextServer()));
+				client->GetResponse()->Add_DHCPOption(DHCP_Option(54, 4, client->Get_DHCP_Client()->GetNextServer()));
 #else
-				client->response->Add_DHCPOption(DHCP_Option(54, client->Get_DHCP_Client()->GetNextServer()));
+				client->GetResponse()->Add_DHCPOption(DHCP_Option(54, client->Get_DHCP_Client()->GetNextServer()));
 #endif // !_WIN32
 
 				if (client->Get_DHCP_Client()->Get_VendorOpts()->size() != 0 && packet->Has_DHCPOption(43))
-					client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(43),
+					client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(43),
 						*client->Get_DHCP_Client()->Get_VendorOpts()));
 
 				_bootfile = client->Get_DHCP_Client()->GetBootfile();
@@ -262,12 +262,12 @@ namespace Namiono
 
 				if (client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile().size() != 0
 					&& !client->Get_DHCP_Client()->GetIsWDSResponse())
-					client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252),
+					client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252),
 						client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
 
-				client->response->Add_DHCPOption(DHCP_Option(53, static_cast<_BYTE>(ACK)));
-				client->response->Add_DHCPOption(DHCP_Option(60, client->Get_DHCP_Client()->Get_VendorString()));
-				client->response->set_filename(_bootfile);
+				client->GetResponse()->Add_DHCPOption(DHCP_Option(53, static_cast<_BYTE>(ACK)));
+				client->GetResponse()->Add_DHCPOption(DHCP_Option(60, client->Get_DHCP_Client()->Get_VendorString()));
+				client->GetResponse()->set_filename(_bootfile);
 
 				break;
 			case AAPLBSDPC:
@@ -281,7 +281,7 @@ namespace Namiono
 			}
 
 
-			client->response->Commit();
+			client->GetResponse()->Commit();
 			server->Send(type, iface, client);
 			client->Get_DHCP_Client()->Set_State(DHCP_DONE);
 		}

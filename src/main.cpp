@@ -15,17 +15,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 int main(int argc, char* argv[])
 {
-	printf("Namiono-Server 0.5b\n");
-	Namiono::_Namiono* namiono = new Namiono::_Namiono(argc,argv);
+	std::shared_ptr<Namiono::_Namiono> namiono =
+		std::make_shared<Namiono::_Namiono>(argc, argv);
 
-	namiono->Init();
-	namiono->Start();
-	namiono->Process();
-	namiono->Close();
+	if (namiono.get()->Init())
+	{
+		printf("Namiono-Server 0.5b\n");
+		namiono.get()->Start();
+		namiono.get()->Process();
+		namiono.get()->Close();
+	}
 
-	delete namiono;
-	namiono = nullptr;
-	
 	return 0;
 }
 

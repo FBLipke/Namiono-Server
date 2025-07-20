@@ -48,46 +48,43 @@ namespace Namiono
 			{
 				printf("[E] TFTP : File not found: %s\n", client->Get_TFTP_Client()->GetFilename().c_str());
 
-				client->response = new Packet(type, static_cast<_SIZET>((client->Get_TFTP_Client()->
+				client->SetResponse(type, static_cast<_SIZET>((client->Get_TFTP_Client()->
 					GetFilename().size() + 1) + 4), Packet_OPCode::TFTP_ERR);
 
-				client->response->Write(static_cast<_USHORT>(htons(5)), 0);
-				client->response->Write(static_cast<_USHORT>(htons(1)), 2);
+				client->GetResponse()->Write(static_cast<_USHORT>(htons(5)), 0);
+				client->GetResponse()->Write(static_cast<_USHORT>(htons(1)), 2);
 
-				client->response->Write(client->Get_TFTP_Client()->GetFilename().c_str(),
+				client->GetResponse()->Write(client->Get_TFTP_Client()->GetFilename().c_str(),
 					client->Get_TFTP_Client()->GetFilename().size(), 4);
 
-				client->response->Commit();
+				client->GetResponse()->Commit();
 
 				server->Send(type, iface, client);
 
 				client->Get_TFTP_Client()->Set_State(TFTP_ERROR);
 
-				delete client->response;
-				client->response = nullptr;
-
+				delete client->GetResponse();
 				return;
 			}
 
 			if (client->Get_TFTP_Client()->OpenFile(client->Get_TFTP_Client()->GetFilename()))
 			{
-				client->response = new Packet(type, 1024, Packet_OPCode::TFTP_OACK);
+				client->SetResponse(type, 1024, Packet_OPCode::TFTP_OACK);
 
 				if (packet->Has_TFTPOption("tsize"))
-					client->response->Add_TFTPOption(TFTP_Option("tsize", Functions::AsString(client->Get_TFTP_Client()->GetBytesToRead())));
+					client->GetResponse()->Add_TFTPOption(TFTP_Option("tsize", Functions::AsString(client->Get_TFTP_Client()->GetBytesToRead())));
 
 				if (packet->Has_TFTPOption("blksize"))
 				{
 					client->Get_TFTP_Client()->SetBlockSize(Functions::AsUSHORT(packet->Get_TFTPOption("blksize").Value));
 				}
 
-				client->response->Add_TFTPOption(TFTP_Option("blksize", Functions::AsString(client->Get_TFTP_Client()->GetBlockSize())));
+				client->GetResponse()->Add_TFTPOption(TFTP_Option("blksize", Functions::AsString(client->Get_TFTP_Client()->GetBlockSize())));
 
-				client->response->Commit();
+				client->GetResponse()->Commit();
 				server->Send(type, iface, client);
 
-				delete client->response;
-				client->response = nullptr;
+				delete client->GetResponse();
 
 				client->Get_TFTP_Client()->Set_State(TFTP_DOWNLOAD);
 				return;
@@ -136,20 +133,19 @@ namespace Namiono
 				client->Get_TFTP_Client()->FileSeek();
 				client->Get_TFTP_Client()->SetCurrentBlock(client->Get_TFTP_Client()->GetCurrentBlock() + 1);
 
-				client->response = new Packet(type, static_cast<_SIZET>(4 + chunk), Packet_OPCode::TFTP_DAT);
-				client->response->Set_Block(client->Get_TFTP_Client()->GetCurrentBlock());
+				client->SetResponse(type, static_cast<_SIZET>(4 + chunk), Packet_OPCode::TFTP_DAT);
+				client->GetResponse()->Set_Block(client->Get_TFTP_Client()->GetCurrentBlock());
 
-				client->Get_TFTP_Client()->SetBytesRead(static_cast<_LONG>(fread(&client->response->Get_Buffer()[4],
+				client->Get_TFTP_Client()->SetBytesRead(static_cast<_LONG>(fread(&client->GetResponse()->Get_Buffer()[4],
 					1, chunk, client->Get_TFTP_Client()->Get_FileHandle())));
-				client->response->Commit();
+				client->GetResponse()->Commit();
 
 					client->Get_TFTP_Client()->AddToBacklog(client->Get_TFTP_Client()->GetCurrentBlock(),
 					client->Get_TFTP_Client()->GetBytesRead(), client->Get_TFTP_Client()->GetBytesToRead());
 				
 				server->Send(type, iface, client);
 
-				delete client->response;
-				client->response = nullptr;
+				delete client->GetResponse();
 
 				if (client->Get_TFTP_Client()->GetBytesRead() == client->Get_TFTP_Client()->GetBytesToRead())
 				{

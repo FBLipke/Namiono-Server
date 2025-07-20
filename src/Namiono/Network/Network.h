@@ -19,10 +19,11 @@ namespace Namiono
 {
 	namespace Network
 	{
-		static std::map<ServiceType, Namiono::Services::Service*> services;
+		static std::map<ServiceType, std::shared_ptr<Namiono::Services::Service>> services;
 		static std::vector<BootServerEntry> serverlist;
+#ifdef ENABLE_UPSTREAMSERVER
 		static std::vector<DHCP_UPSTREAMSERVER> dhcpservers;
-
+#endif
 		class Network
 		{
 		public:
@@ -36,7 +37,9 @@ namespace Namiono
 			void Listen();
 
 			static std::vector<BootServerEntry>* Get_BootServers();
+#ifdef ENABLE_UPSTREAMSERVER
 			static std::vector<DHCP_UPSTREAMSERVER>* Get_UpstreamServers();
+#endif
 #ifdef _WIN32
 			bool Init_Winsock(_INT32 major, _INT32 minor);
 			bool Close_Winsock();
@@ -48,7 +51,9 @@ namespace Namiono
 			std::vector<Server> servers;
 			std::vector<std::thread>listenThreads;
 			SETTINGS* settings;
+#ifdef ENABLE_UPSTREAMSERVER
 			void ReadServerList();
+#endif
 		};
 	}
 }

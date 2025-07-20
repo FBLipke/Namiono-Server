@@ -12,6 +12,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <Namiono/Namiono.h>
+#include "Client.h"
 
 namespace Namiono
 {
@@ -35,7 +36,7 @@ namespace Namiono
 			case DHCP_SERVER:
 			case BINL_SERVER:
 
-				this->dhcp = new DHCP_Client(this->_socketID);
+				this->dhcp = std::make_shared<DHCP_Client>(this->_socketID);
 
 				switch (htons(hint.sin_port))
 				{
@@ -56,7 +57,7 @@ namespace Namiono
 				break;
 			case TFTP_SERVER:
 				this->_client = hint;
-				this->tftp = new TFTP_Client();
+				this->tftp = std::make_shared<TFTP_Client>();
 				break;
 			case HTTP_SERVER:
 
@@ -69,17 +70,17 @@ namespace Namiono
 		TFTP_Client* Client::Get_TFTP_Client()
 		{
 			if (this->tftp == nullptr)
-				this->tftp = new TFTP_Client();
+				this->tftp = std::make_shared<TFTP_Client>();
 
-			return this->tftp;
+			return this->tftp.get();
 		}
 
 		DHCP_Client* Client::Get_DHCP_Client()
 		{
 			if (this->dhcp == nullptr)
-				this->dhcp = new DHCP_Client(this->_socketID);
+				this->dhcp = std::make_shared<DHCP_Client>(this->_socketID);
 
-			return this->dhcp;
+			return this->dhcp.get();
 		}
 
 		void Client::Set_Client_Hint(const _IPADDR& addr, const _USHORT port)
@@ -205,24 +206,35 @@ namespace Namiono
 
 		Client::~Client()
 		{
-			delete this->tftp;
-			this->tftp = nullptr;
-
-			delete this->dhcp;
-			this->dhcp = nullptr;
-
 			delete this->_outIF;
 			this->_outIF = nullptr;
 			
 			delete this->_inIF;
 			this->_inIF = nullptr;
-
-			delete this->response;
-			this->response = nullptr;
 		}
 
 		void Client::HeartBeat()
 		{
 		}
+
+		void Client::SetResponse(const ServiceType& serviceType, const _SIZET& length, const Packet_OPCode& opcode)
+		{
+    		std::make_shared<Packet>(serviceType, length, opcode);
+		}
+
+		void  Client::SetResponse(const ServiceType& serviceType, Packet& packet, const _SIZET& length, const DHCP_MSGTYPE& msgType)
+	    {
+    	    std::make_shared<Packet>(serviceType, packet, length, msgType);
+    	}
+
+		void  Client::SetResponse(const ServiceType& serviceType, Packet& packet, const _SIZET& length)
+	    {
+    	    std::make_shared<Packet>(serviceType, packet, length);
+    	}
+
+		Packet* Client::GetResponse()
+	    {
+    	    return this->response.get();
+    	}
 	}
 }

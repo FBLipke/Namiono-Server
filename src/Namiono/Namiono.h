@@ -15,7 +15,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef NAMIONO_NAMIONO_H_
 #define NAMIONO_NAMIONO_H_
-
 #include <Environment/environment.h>
 
 #include <Namiono/Defines/Namiono_Defines.h>
@@ -72,10 +71,10 @@ namespace Namiono
 		SETTINGS* Get_Settings();
 
 	private:
-		SETTINGS* settings;
+		std::shared_ptr<SETTINGS> settings;
 
 		std::string TFTPRootDir;
-		Namiono::Network::Network* network = nullptr;
+		std::shared_ptr<Namiono::Network::Network> network;
 	};
 }
 #endif

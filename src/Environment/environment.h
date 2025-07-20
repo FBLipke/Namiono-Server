@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <sstream>
 #include <iostream>
 #include <time.h>
-#include <limits>
+#include <limits.h>
 #pragma once
 
 typedef uint16_t _USHORT;

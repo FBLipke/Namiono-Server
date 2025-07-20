@@ -47,17 +47,19 @@ namespace Namiono
 			sockaddr_in& Get_Relay_Hint();
 			const std::string& Get_ID() const;
 			virtual ~Client();
-
-
 			void HeartBeat();
-
-			Packet* response = nullptr;
+			Packet* GetResponse();
+			void SetResponse(const ServiceType& serviceType, Packet& packet, const _SIZET& length, const DHCP_MSGTYPE& msgType);
+			void SetResponse(const ServiceType& serviceType, Packet& packet, const _SIZET& length);
+			void SetResponse(const ServiceType& serviceType, const _SIZET& length, const Packet_OPCode& opcode);
 			std::string _socketID = "";
 		private:
+			std::shared_ptr<Packet> response;
+
 			_USHORT* _inIF = nullptr;
 			_USHORT* _outIF = nullptr;
-			TFTP_Client* tftp = nullptr;
-			DHCP_Client* dhcp = nullptr;
+			std::shared_ptr<TFTP_Client> tftp;
+			std::shared_ptr<DHCP_Client> dhcp;
 
 			sockaddr_in _client;
 			sockaddr_in _relay;

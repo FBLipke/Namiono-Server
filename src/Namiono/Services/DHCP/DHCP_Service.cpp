@@ -16,9 +16,15 @@ namespace Namiono
 {
 	namespace Services
 	{
+#ifdef ENABLE_UPSTREAMSERVER
 		DHCP_Service::DHCP_Service(SETTINGS* settings, const std::vector<DHCP_UPSTREAMSERVER>& upstreamServers)
+#else
+		DHCP_Service::DHCP_Service(SETTINGS* settings)
+#endif
 		{
+#ifdef ENABLE_UPSTREAMSERVER
 			this->upstreamServers = upstreamServers;
+#endif
 			this->settings = settings;
 		}
 
@@ -139,6 +145,7 @@ namespace Namiono
 							packet->get_filename());
 						break;
 					default:
+						printf("[D] DHCP: Unsupported Vendor Id...\n");
 						break;
 					}
 
@@ -184,7 +191,7 @@ namespace Namiono
 						this->relaySessions.emplace(client->Get_ID(), DHCP_RELAYSESSION(client->Get_Client_Hint().sin_addr.s_addr, packet->get_relayIP(), iface));
 				}
 			}
-
+#ifdef ENABLE_UPSTREAMSERVER
 			if (this->upstreamServers.size() > 1)
 			{
 				client->Get_DHCP_Client()->Set_State(CLIENTSTATE::DHCP_RELAY);
@@ -205,13 +212,14 @@ namespace Namiono
 				client->response = nullptr;
 			}
 			else
+#endif
 				Handle_DHCP_Response(type, server, iface, client, packet);
 		}
 
 		void DHCP_Service::Handle_DHCP_Response(const ServiceType& type, Namiono::Network::Server* server, _USHORT iface,
 			Namiono::Network::Client* client, Namiono::Network::Packet* packet)
 		{
-			client->response = new Packet(type, *packet, packet->get_Length());
+			client->SetResponse(type, *packet, packet->get_Length());
 
 			if (client->Get_DHCP_Client()->GetIsRelayedPacket())
 			{
@@ -241,8 +249,7 @@ namespace Namiono
 
 					DHCP_Functions::Create_BootServerList(Network::Network::Get_BootServers(), client);
 					DHCP_Functions::Generate_Bootmenu_From_ServerList(settings, Network::Network::Get_BootServers(), client);
-
-					
+	
 					RBCP_DISCOVERYCONTROL _control = static_cast<RBCP_DISCOVERYCONTROL>
 						(client->Get_DHCP_Client()->Get_RBCPClient()->Get_Control());
 
@@ -275,7 +282,7 @@ namespace Namiono
 				}
 
 				if (client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile().size() != 0 && !client->Get_DHCP_Client()->GetIsWDSResponse())
-					client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252), client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
+					client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(252), client->Get_DHCP_Client()->Get_WDSClient()->GetBCDfile()));
 				break;
 			case AAPLBSDPC:
 				if (!client->Get_DHCP_Client()->GetIsBSDPRequest())
@@ -287,47 +294,47 @@ namespace Namiono
 				break;
 			}
 
-			client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(255)));
+			client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(255)));
 			client->Get_DHCP_Client()->Set_State(CLIENTSTATE::DHCP_CLIENTRESPONSE);
 
 			if (client->Get_DHCP_Client()->GetIsRelayedPacket())
 			{
 				DHCP_Functions::Relay_Response_Packet(&this->relaySessions, type, server, iface, client, packet);
-				client->SetIncomingInterface(DHCP_Functions::Handle_Relayed_Packet(type, server, iface, client->response));
+				client->SetIncomingInterface(DHCP_Functions::Handle_Relayed_Packet(type, server, iface, client->GetResponse()));
 			}
 			else
 			{
 				client->Set_Client_Hint(packet->get_clientIP() == 0 ? INADDR_BROADCAST : packet->get_clientIP(), 68);
-				client->response->set_opcode(DHCP_OPCODE::BOOTREPLY);
-				client->response->set_flags(packet->get_flags());
-				client->response->set_nextIP(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress());
-				client->response->set_servername(server->Get_Interface(type, client->GetIncomingInterface())->Get_ServerName());
+				client->GetResponse()->set_opcode(DHCP_OPCODE::BOOTREPLY);
+				client->GetResponse()->set_flags(packet->get_flags());
+				client->GetResponse()->set_nextIP(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress());
+				client->GetResponse()->set_servername(server->Get_Interface(type, client->GetIncomingInterface())->Get_ServerName());
 #ifndef _WIN32
-				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54),
+				client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54),
 					static_cast<_IPADDR>(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress())));
 #else
 				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54), 
 					static_cast<_IPADDR>(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress())));
 #endif
 				// Remove the Request List!
-				client->response->Remove_DHCPOption(55);
-				client->response->set_filename(client->Get_DHCP_Client()->GetBootfile());
-				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(53), static_cast<_BYTE>(DHCP_MSGTYPE::OFFER)));
-				client->response->Commit();
+				client->GetResponse()->Remove_DHCPOption(55);
+
+				client->GetResponse()->set_filename(client->Get_DHCP_Client()->GetBootfile());
+				client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(53), static_cast<_BYTE>(DHCP_MSGTYPE::OFFER)));
+				client->GetResponse()->Commit();
 
 				if (server->Get_Interface(type, client->GetIncomingInterface())->Get_ServiceType() == type)
 					server->Send(type, client->GetIncomingInterface(), client);
 			}
 
 			client->Get_DHCP_Client()->Set_State(DHCP_DONE);
-
-			delete client->response;
-			client->response = nullptr;
 		}
 
 		DHCP_Service::~DHCP_Service()
 		{
+#ifdef ENABLE_UPSTREAMSERVER
 			upstreamServers.clear();
+#endif
 		}
 		
 		void DHCP_Service::Start()

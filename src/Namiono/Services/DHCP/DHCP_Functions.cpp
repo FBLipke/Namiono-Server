@@ -138,10 +138,10 @@ void DHCP_Functions::Relay_Request_Packet(const _IPADDR& addr, const _USHORT& po
 		printf("[W] Client interface not found! => Using %d instead...\n", iFace->Get_Id());
 	}
 
-	client->response->set_relayIP(server->Get_Interface(type, iFace->Get_Id())->Get_IPAddress());
-	DHCP_Functions::Handle_Relayed_Packet(type, server, iFace->Get_Id(), client->response);
+	client->GetResponse()->set_relayIP(server->Get_Interface(type, iFace->Get_Id())->Get_IPAddress());
+	DHCP_Functions::Handle_Relayed_Packet(type, server, iFace->Get_Id(), client->GetResponse());
 
-	std::string mac = Functions::MacAsString(&client->response->Get_Buffer()[28]).c_str();
+	std::string mac = Functions::MacAsString(&client->GetResponse()->Get_Buffer()[28]).c_str();
 
 	/*
 		Store the mac in our cache on the incoming interface, so that we can later
@@ -156,15 +156,15 @@ void DHCP_Functions::Relay_Request_Packet(const _IPADDR& addr, const _USHORT& po
 	switch (client->Get_DHCP_Client()->Get_Vendor())
 	{
 	case PXEClient:
-		client->response->Add_DHCPOption(DHCP_Option(54, 4, client->Get_Relay_Hint().sin_addr.s_addr));
+		client->GetResponse()->Add_DHCPOption(DHCP_Option(54, 4, client->Get_Relay_Hint().sin_addr.s_addr));
 		break;
 	default:
 		break;
 	}
 
-	client->response->set_flags(DHCP_FLAGS::Unicast);
-	client->response->increase_hops(1);
-	client->response->Commit();
+	client->GetResponse()->set_flags(DHCP_FLAGS::Unicast);
+	client->GetResponse()->increase_hops(1);
+	client->GetResponse()->Commit();
 	
 	std::vector<Iface> _interfaces;
 	server->Get_Interfaces(type, &_interfaces);
@@ -236,7 +236,7 @@ void DHCP_Functions::Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSI
 
 	if (relaySessions->find(client->Get_ID()) != relaySessions->end())
 	{
-		client->response->set_relayIP(relaySessions->at(client->Get_ID()).Get_RelayIP());
+		client->GetResponse()->set_relayIP(relaySessions->at(client->Get_ID()).Get_RelayIP());
 		
 		switch (type)
 		{
@@ -251,7 +251,7 @@ void DHCP_Functions::Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSI
 		}
 
 		client->SetIncomingInterface(relaySessions->at(client->Get_ID()).Get_Interface());
-		client->response->set_flags(DHCP_FLAGS::Unicast);
+		client->GetResponse()->set_flags(DHCP_FLAGS::Unicast);
 		relaySessions->erase(client->Get_ID());
 	}
 
@@ -269,10 +269,10 @@ void DHCP_Functions::Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSI
 				responding server to the list of boot servers later, so that the client can also boot from the upstream server.
 			*/
 
-			client->response->set_nextIP(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress());
-			client->response->set_servername(server->Get_Interface(type, client->GetIncomingInterface())->Get_ServerName());
+			client->GetResponse()->set_nextIP(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress());
+			client->GetResponse()->set_servername(server->Get_Interface(type, client->GetIncomingInterface())->Get_ServerName());
 
-			client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54),
+			client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54),
 				static_cast<_ULONG>(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress())));
 
 			printf("[I] Relaying PXE request...\n");
@@ -286,7 +286,7 @@ void DHCP_Functions::Relay_Response_Packet(std::map<std::string, DHCP_RELAYSESSI
 		break;
 	}
 
-	client->response->Commit();
+	client->GetResponse()->Commit();
 
 	if (server->Get_Interface(type, client->GetIncomingInterface())->Get_ServiceType() == type)
 		server->Send(type, client->GetIncomingInterface(), client);
@@ -389,7 +389,7 @@ void DHCP_Functions::Handle_WDS_Options(const SETTINGS* settings, const ServiceT
 		wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_MESSAGE), client->Get_DHCP_Client()->Get_WDSClient()->GetWDSMessage());
 
 	wdsOptions->emplace_back(static_cast<_BYTE>(WDSBP_OPT_END));
-	client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(250), *wdsOptions));
+	client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(250), *wdsOptions));
 
 	wdsOptions->clear();
 

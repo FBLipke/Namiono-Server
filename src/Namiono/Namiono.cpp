@@ -17,52 +17,47 @@ namespace Namiono
 	_Namiono::_Namiono(_INT32 argc, char* argv[])
 	{
 		printf("[I] Current Directory is: %s\n", CurrentDirectory().c_str());
-		this->settings = new SETTINGS();
+		this->settings = std::make_shared<SETTINGS>();
 
 		if (argc > 1)
 			for (_INT32 i = 0; i < argc; i++)
 			{
 				if (memcmp(argv[i], "--rootdir", strlen("--rootdir")) == 0) /* tftp root Directory */
 				{
-					settings->ROOTDIR = std::string(argv[(i + 1)]);
-					printf("[D] ARG --rootdir : %s\n", settings->ROOTDIR.c_str());
+					Get_Settings()->ROOTDIR = std::string(argv[(i + 1)]);
+					printf("[D] ARG --rootdir : %s\n", Get_Settings()->ROOTDIR.c_str());
 				}
 
 				if (memcmp(argv[i], "--confdir", strlen("--confdir")) == 0) /* tftp config Directory */
 				{
-					settings->CONFDIR = std::string(argv[(i + 1)]);
-					printf("[D] ARG --confdir : %s\n", settings->CONFDIR.c_str());
+					Get_Settings()->CONFDIR = std::string(argv[(i + 1)]);
+					printf("[D] ARG --confdir : %s\n", Get_Settings()->CONFDIR.c_str());
 				}
 
 				if (memcmp(argv[i], "--srv", strlen("--srv")) == 0) /* Upstream Server */
 				{
-					settings->UPSTREAMSERVER = inet_addr(argv[(i + 1)]);
-					printf("[D] ARG --srv : %s\n", Functions::AddressStr(settings->UPSTREAMSERVER).c_str());
+					Get_Settings()->UPSTREAMSERVER = inet_addr(argv[(i + 1)]);
+					printf("[D] ARG --srv : %s\n", Functions::AddressStr(Get_Settings()->UPSTREAMSERVER).c_str());
 				}
 
 				if (memcmp(argv[i], "--nbdom", strlen("--nbdom")) == 0)
 				{
-					settings->NBDOMAIN = std::string(argv[(i + 1)]);
-					printf("[D] ARG --srv : %s\n", settings->NBDOMAIN.c_str());
+					Get_Settings()->NBDOMAIN = std::string(argv[(i + 1)]);
+					printf("[D] ARG --srv : %s\n", Get_Settings()->NBDOMAIN.c_str());
 				}
 			}
 	}
 
 	_Namiono::~_Namiono()
 	{
-		delete this->settings;
-		this->settings = nullptr;
-
-		delete this->network;
-		this->network = nullptr;
 	}
 
 	bool _Namiono::Init()
 	{
 		printf("[I] Initializing...\n");
 
-		this->TFTPRootDir = settings->ROOTDIR.size() == 0 ?
-			Combine(CurrentDirectory(), "TFTP_Root") : Combine(settings->ROOTDIR, "");
+		this->TFTPRootDir = Get_Settings()->ROOTDIR.size() == 0 ?
+			Combine(CurrentDirectory(), "TFTP_Root") : Combine(Get_Settings()->ROOTDIR, "");
 
 		if (!IsDirExist(this->TFTPRootDir))
 			if (!MakePath(this->TFTPRootDir))
@@ -79,10 +74,10 @@ namespace Namiono
 		MakePath(Combine(this->TFTPRootDir, "Boot\\x86"));
 		MakePath(Combine(this->TFTPRootDir, "Config"));
 
-		if (settings->CONFDIR.size() == 0)
-			settings->CONFDIR = Combine(this->TFTPRootDir, "Config");
+		if (Get_Settings()->CONFDIR.size() == 0)
+			Get_Settings()->CONFDIR = Combine(this->TFTPRootDir, "Config");
 		else
-			MakePath(settings->CONFDIR);
+			MakePath(Get_Settings()->CONFDIR);
 
 		MakePath(Combine(this->TFTPRootDir, "tmp"));
 		MakePath(Combine(this->TFTPRootDir, "pxelinux"));
@@ -105,8 +100,8 @@ namespace Namiono
 				Combine(this->TFTPRootDir, std::string("Boot\\x64\\default.bcd")).c_str());
 
 
-		this->network = new Namiono::Network::Network(this->settings, this->TFTPRootDir);
-		this->network->Init();
+		this->network = std::make_shared<Namiono::Network::Network>(Get_Settings(), this->TFTPRootDir);
+		this->network.get()->Init();
 
 		return true;
 	}
@@ -114,27 +109,26 @@ namespace Namiono
 	void _Namiono::Start()
 	{
 		printf("[I] Starting...\n");
-		this->network->Start();
+		this->network.get()->Start();
 	}
 
 	void _Namiono::Process()
 	{
-		this->network->Listen();
+		this->network.get()->Listen();
 	}
 
 	void _Namiono::Heartbeat()
 	{
-		this->network->HeartBeat();
+		this->network.get()->HeartBeat();
 	}
 
 	void _Namiono::Close()
 	{
-		printf("[I] Closing...\n");
-		this->network->Close();
+		this->network.get()->Close();
 	}
 
 	SETTINGS* _Namiono::Get_Settings()
 	{
-		return this->settings;
+		return this->settings.get();
 	}
 }
