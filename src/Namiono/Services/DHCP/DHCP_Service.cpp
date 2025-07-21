@@ -66,11 +66,19 @@ namespace Namiono
 				case DISCOVER:
 				case INFORM:
 				case REQUEST:
-					printf("[I] DHCP : Request on %s (REQUEST from %s)...\n", Functions::AddressStr(
-						server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
-						packet->get_hwaddress().c_str());
+				switch (client->Get_DHCP_Client()->Get_Vendor())
+					{
+					case PXEClient:
+					case PXEServer:
+						printf("[I] DHCP : Request on %s (REQUEST from %s)...\n", Functions::AddressStr(
+							server->Get_Interface(type, iface)->Get_IPAddress()).c_str(),
+							packet->get_hwaddress().c_str());
 
-					this->Handle_DHCP_Request(type, server, iface, client, packet);
+						this->Handle_DHCP_Request(type, server, iface, client, packet);
+						break;
+					default:
+						return;
+					}
 					break;
 				default:
 					break;
@@ -291,7 +299,7 @@ namespace Namiono
 				// Apple Clients requests sometimes a specific Reply Port...
 				client->Set_Port(client->Get_DHCP_Client()->Get_BSDPClient()->Get_ReplyPort());
 			default:
-				break;
+				return;
 			}
 
 			client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(255)));

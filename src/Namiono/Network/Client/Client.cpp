@@ -219,17 +219,17 @@ namespace Namiono
 
 		void Client::SetResponse(const ServiceType& serviceType, const _SIZET& length, const Packet_OPCode& opcode)
 		{
-    		std::make_shared<Packet>(serviceType, length, opcode);
+    		this->response = std::make_shared<Packet>(serviceType, length, opcode);
 		}
 
 		void  Client::SetResponse(const ServiceType& serviceType, Packet& packet, const _SIZET& length, const DHCP_MSGTYPE& msgType)
 	    {
-    	    std::make_shared<Packet>(serviceType, packet, length, msgType);
+    	    this->response = std::make_shared<Packet>(serviceType, packet, length, msgType);
     	}
 
 		void  Client::SetResponse(const ServiceType& serviceType, Packet& packet, const _SIZET& length)
 	    {
-    	    std::make_shared<Packet>(serviceType, packet, length);
+    	    this->response = std::make_shared<Packet>(serviceType, packet, length);
     	}
 
 		Packet* Client::GetResponse()
