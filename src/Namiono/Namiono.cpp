@@ -70,8 +70,8 @@ namespace Namiono
 		printf("[I] TFTP-Root Directory is: %s\n", this->TFTPRootDir.c_str());
 
 		MakePath(Combine(this->TFTPRootDir, "Boot"));
-		MakePath(Combine(this->TFTPRootDir, "Boot\\x64"));
-		MakePath(Combine(this->TFTPRootDir, "Boot\\x86"));
+		MakePath(Combine(this->TFTPRootDir, Combine("Boot","x64")));
+		MakePath(Combine(this->TFTPRootDir, Combine("Boot","x86")));
 		MakePath(Combine(this->TFTPRootDir, "Config"));
 
 		if (Get_Settings()->CONFDIR.size() == 0)
