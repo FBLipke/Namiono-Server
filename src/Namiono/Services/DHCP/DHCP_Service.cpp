@@ -317,13 +317,9 @@ namespace Namiono
 				client->GetResponse()->set_flags(packet->get_flags());
 				client->GetResponse()->set_nextIP(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress());
 				client->GetResponse()->set_servername(server->Get_Interface(type, client->GetIncomingInterface())->Get_ServerName());
-#ifndef _WIN32
 				client->GetResponse()->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54),
 					static_cast<_IPADDR>(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress())));
-#else
-				client->response->Add_DHCPOption(DHCP_Option(static_cast<_BYTE>(54), 
-					static_cast<_IPADDR>(server->Get_Interface(type, client->GetIncomingInterface())->Get_IPAddress())));
-#endif
+
 				// Remove the Request List!
 				client->GetResponse()->Remove_DHCPOption(55);
 
