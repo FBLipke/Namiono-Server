@@ -62,8 +62,6 @@ namespace Namiono
 				server->Send(type, iface, client);
 
 				client->Get_TFTP_Client()->Set_State(TFTP_ERROR);
-
-				delete client->GetResponse();
 				return;
 			}
 
@@ -83,8 +81,6 @@ namespace Namiono
 
 				client->GetResponse()->Commit();
 				server->Send(type, iface, client);
-
-				delete client->GetResponse();
 
 				client->Get_TFTP_Client()->Set_State(TFTP_DOWNLOAD);
 				return;
@@ -138,14 +134,13 @@ namespace Namiono
 
 				client->Get_TFTP_Client()->SetBytesRead(static_cast<_LONG>(fread(&client->GetResponse()->Get_Buffer()[4],
 					1, chunk, client->Get_TFTP_Client()->Get_FileHandle())));
+
 				client->GetResponse()->Commit();
 
-					client->Get_TFTP_Client()->AddToBacklog(client->Get_TFTP_Client()->GetCurrentBlock(),
-					client->Get_TFTP_Client()->GetBytesRead(), client->Get_TFTP_Client()->GetBytesToRead());
+				client->Get_TFTP_Client()->AddToBacklog(client->Get_TFTP_Client()->GetCurrentBlock(),
+				client->Get_TFTP_Client()->GetBytesRead(), client->Get_TFTP_Client()->GetBytesToRead());
 				
 				server->Send(type, iface, client);
-
-				delete client->GetResponse();
 
 				if (client->Get_TFTP_Client()->GetBytesRead() == client->Get_TFTP_Client()->GetBytesToRead())
 				{
