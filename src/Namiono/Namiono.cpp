@@ -83,13 +83,13 @@ namespace Namiono
 		MakePath(Combine(this->TFTPRootDir, "pxelinux"));
 		MakePath(Combine(this->TFTPRootDir, "OSChooser"));
 
-		if (!FileExist(Combine(this->TFTPRootDir, std::string("Boot\\x86\\wdsnbp.com"))))
+		if (!FileExist(Combine(this->TFTPRootDir, std::string("Boot/x86/wdsnbp.com"))))
 			printf("[W] File not found: %s\n(Put this file in the expected Directory).\n",
-				Combine(this->TFTPRootDir, std::string("Boot\\x86\\wdsnbp.com")).c_str());
+				Combine(this->TFTPRootDir, std::string("Boot/x86/wdsnbp.com")).c_str());
 
-		if (!FileExist(Combine(this->TFTPRootDir, std::string("Boot\\x64\\wdsnbp.com"))))
+		if (!FileExist(Combine(this->TFTPRootDir, std::string("Boot/x64/wdsnbp.com"))))
 			printf("[W] File not found: %s\n(Put this file in the expected Directory).\n",
-				Combine(this->TFTPRootDir, std::string("Boot\\x64\\wdsnbp.com")).c_str());
+				Combine(this->TFTPRootDir, std::string("Boot/x64/wdsnbp.com")).c_str());
 
 		if (!FileExist(Combine(this->TFTPRootDir, std::string("Boot\\x86\\default.bcd"))))
 			printf("[W] File not found: %s\n(Put this file in the expected Directory).\n",

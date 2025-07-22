@@ -25,25 +25,23 @@ namespace Namiono
 			~DHCP_Client();
 
 			void SetNextServer(const _IPADDR& ip);
-
 			const _IPADDR& GetNextServer() const;
 
 			void Set_State(const CLIENTSTATE& state);
-
 			const CLIENTSTATE& Get_State() const;
 
 			void Set_Vendor(const DHCP_VENDOR& vendor);
-
 			const DHCP_VENDOR& Get_Vendor() const;
+
 			void Set_VendorString(const std::string& vendor);
 			const std::string& Get_VendorString() const;
+
 			void SetMessageType(const DHCP_MSGTYPE& type);
 			const DHCP_MSGTYPE& GetMessageType() const;
 
 			void SetBootfile(const std::string& file);
 
 			const std::string& GetPrefix() const;
-
 			void SetPrefix(const std::string& path);
 
 			const DHCP_ARCH& GetArchitecture() const;
@@ -62,8 +60,6 @@ namespace Namiono
 			void SetIsWDSResponse(bool is);
 
 			void SetIsBSDPRequest(bool is);
-
-
 
 			const bool GetIsBSDPRequest() const;
 
@@ -92,10 +88,10 @@ namespace Namiono
 			CLIENTSTATE* state = nullptr;
 			DHCP_VENDOR* vendorid = nullptr;
 			std::string* vendorstring = nullptr;
-			WDS_Client* wds = nullptr;
-			RBCP_Client* rbcp = nullptr;
-			BSDP_Client* bsdp = nullptr;
-			IPXE_Client* ipxe = nullptr;
+			std::shared_ptr<WDS_Client> wds;
+			std::shared_ptr<RBCP_Client> rbcp;
+			std::shared_ptr<BSDP_Client> bsdp;
+			std::shared_ptr<IPXE_Client> ipxe;
 			std::vector<DHCP_Option>* vendorOpts = nullptr;
 		};
 	}

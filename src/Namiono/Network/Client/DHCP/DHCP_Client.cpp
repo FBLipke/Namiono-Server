@@ -20,10 +20,10 @@ namespace Namiono
 	{
 		DHCP_Client::DHCP_Client(const std::string& nextIP)
 		{
-			this->wds = new WDS_Client();
-			this->rbcp = new RBCP_Client();
-			this->bsdp = new BSDP_Client();
-			this->ipxe = new IPXE_Client();
+			this->wds = std::make_shared<WDS_Client>();
+			this->rbcp = std::make_shared<RBCP_Client>();
+			this->bsdp = std::make_shared<BSDP_Client>();
+			this->ipxe = std::make_shared<IPXE_Client>();
 			this->arch = new DHCP_ARCH(INTEL_X86);
 			this->bootfile = new std::string("");
 			this->prefix = new std::string("");
@@ -233,38 +233,26 @@ namespace Namiono
 
 		WDS_Client * DHCP_Client::Get_WDSClient()
 		{
-			return this->wds;
+			return this->wds.get();
 		}
 
 		RBCP_Client * DHCP_Client::Get_RBCPClient()
 		{
-			return this->rbcp;
+			return this->rbcp.get();
 		}
 
 		IPXE_Client * DHCP_Client::Get_IPXEClient()
 		{
-			return this->ipxe;
+			return this->ipxe.get();
 		}
 
 		BSDP_Client * DHCP_Client::Get_BSDPClient()
 		{
-			return this->bsdp;
+			return this->bsdp.get();
 		}
 
 		DHCP_Client::~DHCP_Client()
 		{
-			delete this->wds;
-			this->wds = nullptr;
-
-			delete this->rbcp;
-			this->rbcp = nullptr;
-
-			delete this->ipxe;
-			this->ipxe = nullptr;
-
-			delete this->bsdp;
-			this->bsdp = nullptr;
-
 			delete this->arch;
 			this->arch = nullptr;
 

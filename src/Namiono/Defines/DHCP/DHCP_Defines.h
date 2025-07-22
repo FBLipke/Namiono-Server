@@ -94,10 +94,7 @@ namespace Namiono
 				ClearBuffer(Value, Length);
 			}
 
-			~DHCP_Option()
-			{
-
-			}
+			~DHCP_Option() = default;
 
 			DHCP_Option(const _BYTE& opt, const _BYTE& length, const void* value)
 			{

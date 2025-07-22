@@ -324,13 +324,11 @@ namespace Namiono
 							if (!iface.Get_ServiceType() == t)
 								continue;
 
-							Packet* request = new Packet(t, buffer, &bytes);
-							srv->callback(t, srv, iface.Get_Id(), srv->Add_Client(iface.Get_Id(),t, remote, request), request);
+							std::shared_ptr<Packet> request = std::make_shared<Packet>(t, buffer, &bytes);
+							srv->callback(t, srv, iface.Get_Id(), srv->Add_Client(iface.Get_Id(),t, remote, request.get()), request.get());
 							delete[] buffer;
 							buffer = nullptr;
 
-							delete request;
-							request = nullptr;
 							FD_CLR(iface.Get_Socket(), &copy_of_read);
 							break;
 						}
