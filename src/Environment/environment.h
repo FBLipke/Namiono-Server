@@ -43,6 +43,8 @@ typedef unsigned char _BYTE;
 #include "environment_windows.h"
 #endif
 
+#include "ThirdParty/pugixml/src/pugixml.hpp"
+
 #ifdef __BYTE_ORDER
 #if defined(_BIG_ENDIAN)
 #define __BYTE_ORDER __BIG_ENDIAN
