@@ -55,18 +55,50 @@ namespace Namiono
 			AAPLBSDPC = 0x03
 		} DHCP_VENDOR;
 
-		typedef enum DHCP_ARCH
+		typedef enum DHCP_ARCH // LE
 		{
-			INTEL_X86 = 0x0000,
-			NEC_PC98 = 0x0001,
-			EFI_ITAN = 0x0002,
-			DEC_ALPHA = 0x0003,
-			ARC_X86 = 0x0004,
-			INTEL_LEAN = 0x0005,
-			INTEL_IA32X64 = 0x0006,
-			EFI_BC = 0x0007,
-			EFI_XSCALE = 0x0008,
-			EFI_X86X64 = 0x0009
+			X86PC = 0x0000,
+			NECPC98 = 0x0001,
+			EFIItanium,
+			DECAlpha,
+			Arcx86,
+			IntelLeanClient,
+			EFI_IA32,
+			EFIByteCode,
+			EFI_xScale,
+			EFI_x8664,
+			ARM32_EFI,
+			ARM64_EFI,
+			PowerPCOpenFW,
+			PowerPCePAPR,
+			PowerOpalV3,
+			X86EfiHttp,
+			X64EfiHttp,
+			EfiHttp,
+			Arm32EfiHttp,
+			Arm64EfiHttp,
+			PCBiosHttp,
+			Arm32Uboot,
+			Arm64UBoot,
+			Arm32UbootHttp,
+			Arm64UbootHttp,
+			RiscV32EFi,
+			RiscV32EFiHttp,
+			RiscV64EFi,
+			RiscV64EFiHttp,
+			RiscV128Efi,
+			RiscV128EfiHttp,
+			S390Basic,
+			S390Extended,
+			MIPS32Efi,
+			MIPS64Efi,
+			SunWay32Efi,
+			SunWay64Efi,
+			LoongArch32Efi,
+			LoongArch32EfiHttp,
+			LoongArch64Efi,
+			LoongArch64EfiHttp,
+			ArmRPIBoot
 		} DHCP_ARCH;
 
 		typedef enum DHCP_FLAGS
@@ -84,7 +116,16 @@ namespace Namiono
 			PRONET = 0x04,
 			CHAOS = 0x05,
 			IEEE802 = 0x06,
-			ARCNET = 0x07
+			ARCNET = 0x07,
+			LocalTalk = 0x0b,
+			LocalNet = 0x0c,
+			SMDS = 0x0e,
+			FrameRelay = 0x0f,
+			ATM1 = 0x10,
+			HDLC = 0x11,
+			FireChannel = 0x12,
+			ATM2 = 0x13,
+			SerialLine = 0x14
 		} DHCP_HARDWARETYPE;
 
 		typedef struct DHCP_Option

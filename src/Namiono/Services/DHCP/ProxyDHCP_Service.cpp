@@ -136,7 +136,7 @@ namespace Namiono
 
 						if (options.at(i).Option == static_cast<_BYTE>(WDSBP_OPT_ARCHITECTURE))
 						{
-							DHCP_ARCH arch = DHCP_ARCH::INTEL_X86;
+							DHCP_ARCH arch = DHCP_ARCH::X86PC;
 							memcpy(&arch, &options.at(i).Value[0], sizeof(_USHORT));
 							_USHORT __arch = LE16(arch);
 

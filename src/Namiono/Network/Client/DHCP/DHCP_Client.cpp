@@ -24,7 +24,7 @@ namespace Namiono
 			this->rbcp = std::make_shared<RBCP_Client>();
 			this->bsdp = std::make_shared<BSDP_Client>();
 			this->ipxe = std::make_shared<IPXE_Client>();
-			this->arch = new DHCP_ARCH(INTEL_X86);
+			this->arch = new DHCP_ARCH(X86PC);
 			this->bootfile = new std::string("");
 			this->prefix = new std::string("");
 			this->vendorid = new DHCP_VENDOR(UNKNOWNNO);
@@ -186,7 +186,7 @@ namespace Namiono
 			switch (this->GetArchitecture())
 			{
 			default:
-			case INTEL_X86:
+			case DHCP_ARCH::X86PC:
 				*this->prefix = "Boot\\x86\\";
 				this->wds->SetBCDfile(*this->prefix + "default.bcd");
 				switch (this->wds->GetNextAction())
@@ -200,8 +200,8 @@ namespace Namiono
 					break;
 				}
 				break;
-			case INTEL_IA32X64:
-			case EFI_X86X64:
+			case DHCP_ARCH::EFI_IA32:
+			case DHCP_ARCH::EFI_x8664:
 				*this->prefix = "Boot\\x64\\";
 				this->wds->SetBCDfile(*this->prefix + "default.bcd");
 				switch (this->wds->GetNextAction())
@@ -216,7 +216,7 @@ namespace Namiono
 					break;
 				}
 				break;
-			case EFI_BC:
+			case DHCP_ARCH::EFIByteCode:
 				*this->prefix = "Boot\\efi\\";
 				this->wds->SetBCDfile(*this->prefix + "default.bcd");
 				*this->bootfile = *this->prefix + "bootmgfw.efi";
