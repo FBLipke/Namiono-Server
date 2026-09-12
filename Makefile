@@ -6,7 +6,7 @@ INC_NAMIONO += -I ./src/Namiono/Network/Services/ -I ./src/Namiono/Network/Servi
 CXXFLAGS = -std=c++14 -fpermissive -pthread 
 CXXFLAGS += $(INC_NAMIONO)  
 
-all: envi clean namiono
+all: clean envi namiono
 
 namiono: build/main.o build/environment.o build/Namiono.o build/Functions.o build/Network.o build/DHCP_Service.o build/ProxyDHCP_Service.o build/DHCP_Functions.o build/TFTP_Service.o build/Packet.o build/Client.o build/DHCP_Client.o build/IPXE_Client.o build/BSDP_Client.o build/RBCP_Client.o build/WDS_Client.o build/TFTP_Client.o build/Interface.o build/Server.o build/Filesystem.o
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $^ -o bin/namiono
