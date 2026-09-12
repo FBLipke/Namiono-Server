@@ -62,10 +62,12 @@ typedef unsigned char _BYTE;
 #endif
 #define LE32(x) (((uint32_t)(x) >> 24) | (((uint32_t)(x) >> 8) & 0xff00) | (((uint32_t)(x) << 8) & 0xff0000) | ((uint32_t)(x) << 24))
 
-#ifdef _WIN32
-#define LE16(x) x
-#else
+#ifdef _BIG_ENDIAN
 #define LE16(x) (((uint16_t)(x) >> 8) | (((uint16_t)(x) & 0xff) << 8))
+#define LE32(x) (((uint32_t)(x) >> 24) | (((uint32_t)(x) >> 8) & 0xff00) | (((uint32_t)(x) << 8) & 0xff0000) | ((uint32_t)(x) << 24))
+#else
+#define LE16(x) (x)
+#define LE32(x) (x)
 #endif
 
 #endif /* ENVIRONMENT_ENVIRONMENT_H_ */
