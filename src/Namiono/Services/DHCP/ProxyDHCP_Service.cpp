@@ -138,9 +138,7 @@ namespace Namiono
 						{
 							DHCP_ARCH arch = DHCP_ARCH::X86PC;
 							memcpy(&arch, &options.at(i).Value[0], sizeof(_USHORT));
-							_USHORT __arch = LE16(arch);
-
-							client->Get_DHCP_Client()->SetArchitecture(static_cast<DHCP_ARCH>(htons(__arch)));
+							client->Get_DHCP_Client()->SetArchitecture(static_cast<DHCP_ARCH>(ntohs(arch)));
 						}
 
 						// WDS Next Action...
@@ -175,7 +173,7 @@ namespace Namiono
 						{
 							memcpy(&_type, &options.at(i).Value[0], sizeof(_USHORT));
 							if (_type != 0)
-								client->Get_DHCP_Client()->Get_RBCPClient()->Set_Item(LE16(_type));
+								client->Get_DHCP_Client()->Get_RBCPClient()->Set_Item(ntohs(_type));
 
 							memcpy(&_layer, &options.at(i).Value[2], sizeof(_USHORT));
 							if (_layer != 0)
@@ -222,13 +220,13 @@ namespace Namiono
 							char item[4];
 							ClearBuffer(item, sizeof item);
 
-							_USHORT __LE_TYPE__ = LE16(_type);
-							memcpy(&item[0], &__LE_TYPE__, sizeof  __LE_TYPE__);
-							memcpy(&item[2], &_layer, sizeof _layer);
+							_USHORT __BE_TYPE__ = htons(_type);
+							memcpy(&item[0], &__BE_TYPE__, sizeof __BE_TYPE__);
+							_USHORT __BE_LAYER__ = htons(_layer); memcpy(&item[2], &__BE_LAYER__, sizeof __BE_LAYER__);
 							client->Get_DHCP_Client()->Get_VendorOpts()->clear();
 
 							client->Get_DHCP_Client()->Get_VendorOpts()->emplace_back(
-								static_cast<_BYTE>(PXE_BOOT_ITEM), static_cast<_BYTE>(4), LE16(item));
+								static_cast<_BYTE>(PXE_BOOT_ITEM), static_cast<_BYTE>(4), item);
 						}
 					}
 					printf("%d\n", _type);
